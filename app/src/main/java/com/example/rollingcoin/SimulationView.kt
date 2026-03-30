@@ -129,7 +129,6 @@ class SimulationView @JvmOverloads constructor(
             .build()
 
         loadSounds()
-        setCoinCount(1)
     }
 
     // region Sound loading
