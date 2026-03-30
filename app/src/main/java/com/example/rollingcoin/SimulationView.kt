@@ -194,10 +194,6 @@ class SimulationView @JvmOverloads constructor(
         vibrationIntensityFactor = 0.4f + (vibrationPercent * 2.6f)
         vibrationThreshold = 1.5f - (vibrationPercent * 1.3f)
 
-        val shadowDistance = 5f + glidePercent * 30f
-        val shadowBlur = 10f + glidePercent * 25f
-        bitmapPaint.setShadowLayer(shadowBlur, shadowDistance, shadowDistance, Color.argb(130, 0, 0, 0))
-
         // Update radius of all existing coins proportionally
         for (coin in coins) {
             coin.radius = radiusForType(coin.type)
