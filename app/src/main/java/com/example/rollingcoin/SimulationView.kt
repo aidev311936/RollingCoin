@@ -158,13 +158,15 @@ class SimulationView @JvmOverloads constructor(
     // endregion
 
     // region Coin management
-    fun setCoinCount(count: Int) {
+    fun setCoinCount(count: Int, type: CoinType = CoinType.EURO_2) {
         while (coins.size < count) {
             coins.add(
                 Coin(
                     id = nextCoinId++,
+                    type = type,
                     x = width / 2f + random.nextFloat() * 30,
-                    y = height / 2f + random.nextFloat() * 30
+                    y = height / 2f + random.nextFloat() * 30,
+                    radius = radiusForType(type)
                 )
             )
         }
@@ -172,6 +174,11 @@ class SimulationView @JvmOverloads constructor(
             coins.removeAt(coins.size - 1)
         }
         invalidate()
+    }
+
+    private fun radiusForType(type: CoinType): Float {
+        val scale = type.diameterMm / CoinType.MAX_DIAMETER_MM
+        return coinRadius * scale
     }
     // endregion
 
@@ -191,6 +198,11 @@ class SimulationView @JvmOverloads constructor(
         val shadowDistance = 5f + glidePercent * 30f
         val shadowBlur = 10f + glidePercent * 25f
         coinPaint.setShadowLayer(shadowBlur, shadowDistance, shadowDistance, Color.argb(130, 0, 0, 0))
+
+        // Update radius of all existing coins proportionally
+        for (coin in coins) {
+            coin.radius = radiusForType(coin.type)
+        }
         invalidate()
     }
 
@@ -267,8 +279,8 @@ class SimulationView @JvmOverloads constructor(
         }
 
         for (coin in coins) {
-            canvas.drawCircle(coin.x, coin.y, coinRadius, coinPaint)
-            canvas.drawCircle(coin.x, coin.y, coinRadius, borderPaint)
+            canvas.drawCircle(coin.x, coin.y, coin.radius, coinPaint)
+            canvas.drawCircle(coin.x, coin.y, coin.radius, borderPaint)
         }
 
         if (triggerVibrate) vibrate(maxImpactVelocity)

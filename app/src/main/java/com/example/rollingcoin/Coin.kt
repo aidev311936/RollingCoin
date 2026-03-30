@@ -2,10 +2,13 @@ package com.example.rollingcoin
 
 class Coin(
     val id: Int,
+    val type: CoinType,
     var x: Float,
     var y: Float,
     var vx: Float = 0f,
-    var vy: Float = 0f
+    var vy: Float = 0f,
+    var radius: Float = 50f,
+    val mass: Float = type.weightG
 ) {
     var wasHitLeft = false
     var wasHitRight = false
