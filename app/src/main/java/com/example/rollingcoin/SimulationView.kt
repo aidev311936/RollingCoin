@@ -276,16 +276,13 @@ class SimulationView @JvmOverloads constructor(
         }
 
         for (coin in coins) {
-            val bitmap = coinBitmaps[coin.type]
-            if (bitmap != null) {
-                drawRect.set(
-                    coin.x - coin.radius,
-                    coin.y - coin.radius,
-                    coin.x + coin.radius,
-                    coin.y + coin.radius
-                )
-                canvas.drawBitmap(bitmap, null, drawRect, bitmapPaint)
-            }
+            val bitmap = coinBitmaps[coin.type] ?: continue
+            drawRect.set(-coin.radius, -coin.radius, coin.radius, coin.radius)
+            canvas.save()
+            canvas.translate(coin.x, coin.y)
+            canvas.rotate(coin.rotation)
+            canvas.drawBitmap(bitmap, null, drawRect, bitmapPaint)
+            canvas.restore()
         }
 
         if (triggerVibrate) vibrate(maxImpactVelocity)

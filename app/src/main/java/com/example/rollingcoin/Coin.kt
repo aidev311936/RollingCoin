@@ -8,7 +8,8 @@ class Coin(
     var vx: Float = 0f,
     var vy: Float = 0f,
     var radius: Float = 50f,
-    val mass: Float = type.weightG
+    val mass: Float = type.weightG,
+    val rotation: Float = (Math.random() * 360).toFloat()
 ) {
     var wasHitLeft = false
     var wasHitRight = false
