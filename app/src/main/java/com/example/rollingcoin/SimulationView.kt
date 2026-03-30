@@ -1,9 +1,12 @@
 package com.example.rollingcoin
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -101,17 +104,13 @@ class SimulationView @JvmOverloads constructor(
     private var gravityY = 0f
     // endregion
 
-    // region Paint
-    private val coinPaint = Paint().apply {
-        color = Color.parseColor("#FFD700")
-        isAntiAlias = true
-        style = Paint.Style.FILL
+    // region Bitmaps
+    private val coinBitmaps: Map<CoinType, Bitmap> = CoinType.values().associateWith { type ->
+        val resId = context.resources.getIdentifier(type.drawableName, "drawable", context.packageName)
+        BitmapFactory.decodeResource(context.resources, resId)
     }
-    private val borderPaint = Paint().apply {
-        color = Color.parseColor("#DAA520")
-        strokeWidth = 10f
-        style = Paint.Style.STROKE
-    }
+    private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val drawRect = RectF()
     // endregion
 
     init {
@@ -197,7 +196,7 @@ class SimulationView @JvmOverloads constructor(
 
         val shadowDistance = 5f + glidePercent * 30f
         val shadowBlur = 10f + glidePercent * 25f
-        coinPaint.setShadowLayer(shadowBlur, shadowDistance, shadowDistance, Color.argb(130, 0, 0, 0))
+        bitmapPaint.setShadowLayer(shadowBlur, shadowDistance, shadowDistance, Color.argb(130, 0, 0, 0))
 
         // Update radius of all existing coins proportionally
         for (coin in coins) {
@@ -281,8 +280,16 @@ class SimulationView @JvmOverloads constructor(
         }
 
         for (coin in coins) {
-            canvas.drawCircle(coin.x, coin.y, coin.radius, coinPaint)
-            canvas.drawCircle(coin.x, coin.y, coin.radius, borderPaint)
+            val bitmap = coinBitmaps[coin.type]
+            if (bitmap != null) {
+                drawRect.set(
+                    coin.x - coin.radius,
+                    coin.y - coin.radius,
+                    coin.x + coin.radius,
+                    coin.y + coin.radius
+                )
+                canvas.drawBitmap(bitmap, null, drawRect, bitmapPaint)
+            }
         }
 
         if (triggerVibrate) vibrate(maxImpactVelocity)
