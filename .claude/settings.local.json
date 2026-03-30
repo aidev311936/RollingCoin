@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/roman/AndroidStudioProjects/RollingCoin checkout -b feature/euro-coins)"
+    ]
+  }
+}
