@@ -1,9 +1,12 @@
 package com.example.rollingcoin
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -42,6 +45,9 @@ class SimulationView @JvmOverloads constructor(
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
         private const val VIBRATION_COOLDOWN_MS = 110L
         private const val SCRAPE_COOLDOWN_MS = 200L
+
+        // Reference mass for acceleration scaling (roughly the midpoint of Euro coin weights)
+        private const val REFERENCE_MASS_G = 5.0f
     }
     // endregion
 
@@ -98,17 +104,13 @@ class SimulationView @JvmOverloads constructor(
     private var gravityY = 0f
     // endregion
 
-    // region Paint
-    private val coinPaint = Paint().apply {
-        color = Color.parseColor("#FFD700")
-        isAntiAlias = true
-        style = Paint.Style.FILL
+    // region Bitmaps
+    private val coinBitmaps: Map<CoinType, Bitmap> = CoinType.values().associateWith { type ->
+        val resId = context.resources.getIdentifier(type.drawableName, "drawable", context.packageName)
+        BitmapFactory.decodeResource(context.resources, resId)
     }
-    private val borderPaint = Paint().apply {
-        color = Color.parseColor("#DAA520")
-        strokeWidth = 10f
-        style = Paint.Style.STROKE
-    }
+    private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val drawRect = RectF()
     // endregion
 
     init {
@@ -126,7 +128,6 @@ class SimulationView @JvmOverloads constructor(
             .build()
 
         loadSounds()
-        setCoinCount(1)
     }
 
     // region Sound loading
@@ -158,20 +159,25 @@ class SimulationView @JvmOverloads constructor(
     // endregion
 
     // region Coin management
-    fun setCoinCount(count: Int) {
-        while (coins.size < count) {
+    fun setCountForType(type: CoinType, count: Int) {
+        coins.removeAll { it.type == type }
+        repeat(count) {
             coins.add(
                 Coin(
                     id = nextCoinId++,
+                    type = type,
                     x = width / 2f + random.nextFloat() * 30,
-                    y = height / 2f + random.nextFloat() * 30
+                    y = height / 2f + random.nextFloat() * 30,
+                    radius = radiusForType(type)
                 )
             )
         }
-        while (coins.size > count) {
-            coins.removeAt(coins.size - 1)
-        }
         invalidate()
+    }
+
+    private fun radiusForType(type: CoinType): Float {
+        val scale = type.diameterMm / CoinType.MAX_DIAMETER_MM
+        return coinRadius * scale
     }
     // endregion
 
@@ -188,16 +194,19 @@ class SimulationView @JvmOverloads constructor(
         vibrationIntensityFactor = 0.4f + (vibrationPercent * 2.6f)
         vibrationThreshold = 1.5f - (vibrationPercent * 1.3f)
 
-        val shadowDistance = 5f + glidePercent * 30f
-        val shadowBlur = 10f + glidePercent * 25f
-        coinPaint.setShadowLayer(shadowBlur, shadowDistance, shadowDistance, Color.argb(130, 0, 0, 0))
+        // Update radius of all existing coins proportionally
+        for (coin in coins) {
+            coin.radius = radiusForType(coin.type)
+        }
         invalidate()
     }
 
     private fun applyPhysics() {
         for (coin in coins) {
-            coin.vx += gravityX * SENSOR_SCALE * accelerationMultiplier
-            coin.vy += gravityY * SENSOR_SCALE * accelerationMultiplier
+            // Lighter coins react more strongly to tilt than heavier ones
+            val massScale = REFERENCE_MASS_G / coin.mass
+            coin.vx += gravityX * SENSOR_SCALE * accelerationMultiplier * massScale
+            coin.vy += gravityY * SENSOR_SCALE * accelerationMultiplier * massScale
             coin.vx *= friction
             coin.vy *= friction
             coin.x += coin.vx
@@ -267,8 +276,13 @@ class SimulationView @JvmOverloads constructor(
         }
 
         for (coin in coins) {
-            canvas.drawCircle(coin.x, coin.y, coinRadius, coinPaint)
-            canvas.drawCircle(coin.x, coin.y, coinRadius, borderPaint)
+            val bitmap = coinBitmaps[coin.type] ?: continue
+            drawRect.set(-coin.radius, -coin.radius, coin.radius, coin.radius)
+            canvas.save()
+            canvas.translate(coin.x, coin.y)
+            canvas.rotate(coin.rotation)
+            canvas.drawBitmap(bitmap, null, drawRect, bitmapPaint)
+            canvas.restore()
         }
 
         if (triggerVibrate) vibrate(maxImpactVelocity)
@@ -281,35 +295,36 @@ class SimulationView @JvmOverloads constructor(
 
     // region Collision resolution
     private fun resolveWallCollision(coin: Coin, onImpact: (Float) -> Unit) {
-        val bottomLimit = height - (coinRadius + bottomInset)
+        val r = coin.radius
+        val bottomLimit = height - (r + bottomInset)
 
-        if (coin.x < coinRadius) {
+        if (coin.x < r) {
             val impact = abs(coin.vx)
-            coin.x = coinRadius + 0.15f
+            coin.x = r + 0.15f
             if (!coin.wasHitLeft && impact > vibrationThreshold) onImpact(impact)
             coin.vx *= -BOUNCE
             coin.wasHitLeft = true
-        } else if (coin.x > coinRadius + WALL_HAPTIC_BUFFER) {
+        } else if (coin.x > r + WALL_HAPTIC_BUFFER) {
             coin.wasHitLeft = false
         }
 
-        if (coin.x > width - coinRadius) {
+        if (coin.x > width - r) {
             val impact = abs(coin.vx)
-            coin.x = width - coinRadius - 0.15f
+            coin.x = width - r - 0.15f
             if (!coin.wasHitRight && impact > vibrationThreshold) onImpact(impact)
             coin.vx *= -BOUNCE
             coin.wasHitRight = true
-        } else if (coin.x < width - coinRadius - WALL_HAPTIC_BUFFER) {
+        } else if (coin.x < width - r - WALL_HAPTIC_BUFFER) {
             coin.wasHitRight = false
         }
 
-        if (coin.y < coinRadius) {
+        if (coin.y < r) {
             val impact = abs(coin.vy)
-            coin.y = coinRadius + 0.15f
+            coin.y = r + 0.15f
             if (!coin.wasHitTop && impact > vibrationThreshold) onImpact(impact)
             coin.vy *= -BOUNCE
             coin.wasHitTop = true
-        } else if (coin.y > coinRadius + WALL_HAPTIC_BUFFER) {
+        } else if (coin.y > r + WALL_HAPTIC_BUFFER) {
             coin.wasHitTop = false
         }
 
@@ -332,7 +347,7 @@ class SimulationView @JvmOverloads constructor(
                 val dx = b.x - a.x
                 val dy = b.y - a.y
                 val distSq = dx * dx + dy * dy
-                val minDist = coinRadius * 2
+                val minDist = a.radius + b.radius
 
                 if (distSq >= minDist * minDist) {
                     a.collidingWith.remove(b.id)
@@ -357,13 +372,14 @@ class SimulationView @JvmOverloads constructor(
                     overlap = minDist - dist
                 }
 
-                // Separate overlapping coins with a small jitter to avoid perfectly mirrored bounces
+                // Separate overlapping coins — heavier coin moves less
+                val totalMass = a.mass + b.mass
                 val jitter = (random.nextFloat() - 0.5f) * 0.15f
-                val correction = (overlap / 2f) + 0.15f
-                a.x -= (normalX + jitter) * correction
-                a.y -= (normalY + jitter) * correction
-                b.x += (normalX + jitter) * correction
-                b.y += (normalY + jitter) * correction
+                val correction = overlap + 0.15f
+                a.x -= (normalX + jitter) * correction * (b.mass / totalMass)
+                a.y -= (normalY + jitter) * correction * (b.mass / totalMass)
+                b.x += (normalX + jitter) * correction * (a.mass / totalMass)
+                b.y += (normalY + jitter) * correction * (a.mass / totalMass)
 
                 val relVelX = b.vx - a.vx
                 val relVelY = b.vy - a.vy
@@ -384,13 +400,12 @@ class SimulationView @JvmOverloads constructor(
                     if (abs(tangentVelocity) > SCRAPE_TANGENT_THRESHOLD) onCollision(0f, true)
                 }
 
-                val impulse = -(1 + BOUNCE) * velAlongNormal
-                val impulseX = (impulse / 2f) * normalX
-                val impulseY = (impulse / 2f) * normalY
-                a.vx -= impulseX
-                a.vy -= impulseY
-                b.vx += impulseX
-                b.vy += impulseY
+                // Mass-weighted impulse: heavier coin absorbs less velocity change
+                val impulse = -(1 + BOUNCE) * velAlongNormal / (1f / a.mass + 1f / b.mass)
+                a.vx -= (impulse / a.mass) * normalX
+                a.vy -= (impulse / a.mass) * normalY
+                b.vx += (impulse / b.mass) * normalX
+                b.vy += (impulse / b.mass) * normalY
 
                 a.collidingWith.add(b.id)
                 b.collidingWith.add(a.id)
