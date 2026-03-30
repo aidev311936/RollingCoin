@@ -161,8 +161,9 @@ class SimulationView @JvmOverloads constructor(
     // endregion
 
     // region Coin management
-    fun setCoinCount(count: Int, type: CoinType = CoinType.EURO_2) {
-        while (coins.size < count) {
+    fun setCountForType(type: CoinType, count: Int) {
+        coins.removeAll { it.type == type }
+        repeat(count) {
             coins.add(
                 Coin(
                     id = nextCoinId++,
@@ -172,9 +173,6 @@ class SimulationView @JvmOverloads constructor(
                     radius = radiusForType(type)
                 )
             )
-        }
-        while (coins.size > count) {
-            coins.removeAt(coins.size - 1)
         }
         invalidate()
     }

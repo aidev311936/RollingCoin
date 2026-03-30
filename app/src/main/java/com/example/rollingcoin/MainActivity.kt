@@ -67,23 +67,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSliders() {
-        val countSlider = findViewById<SeekBar>(R.id.countSlider)
         val volumeSlider = findViewById<SeekBar>(R.id.volumeSlider)
         val radiusSlider = findViewById<SeekBar>(R.id.radiusSlider)
         val glideSlider = findViewById<SeekBar>(R.id.glideSlider)
         val vibrationSlider = findViewById<SeekBar>(R.id.vibrationSlider)
 
-        val countValue = findViewById<TextView>(R.id.countValue)
         val volumeValue = findViewById<TextView>(R.id.volumeValue)
         val radiusValue = findViewById<TextView>(R.id.radiusValue)
         val glideValue = findViewById<TextView>(R.id.glideValue)
         val vibrationValue = findViewById<TextView>(R.id.vibrationValue)
 
-        countSlider.onChange { progress ->
-            val count = progress.coerceAtLeast(1)
-            simulationView.setCoinCount(count)
-            countValue.text = count.toString()
-        }
         volumeSlider.onChange { progress ->
             simulationView.volumePercent = progress / 100f
             volumeValue.text = "$progress%"
@@ -101,11 +94,45 @@ class MainActivity : AppCompatActivity() {
             vibrationValue.text = "$progress%"
         }
 
-        countSlider.progress = 1
         volumeSlider.progress = 50
         radiusSlider.progress = 30
         glideSlider.progress = 30
         vibrationSlider.progress = 80
+
+        setupCoinTypeButtons()
+    }
+
+    private fun setupCoinTypeButtons() {
+        data class CoinRow(val type: CoinType, val minusId: Int, val countId: Int, val plusId: Int)
+
+        val rows = listOf(
+            CoinRow(CoinType.CENT_1,  R.id.btnMinus_1ct,  R.id.count_1ct,  R.id.btnPlus_1ct),
+            CoinRow(CoinType.CENT_2,  R.id.btnMinus_2ct,  R.id.count_2ct,  R.id.btnPlus_2ct),
+            CoinRow(CoinType.CENT_5,  R.id.btnMinus_5ct,  R.id.count_5ct,  R.id.btnPlus_5ct),
+            CoinRow(CoinType.CENT_10, R.id.btnMinus_10ct, R.id.count_10ct, R.id.btnPlus_10ct),
+            CoinRow(CoinType.CENT_20, R.id.btnMinus_20ct, R.id.count_20ct, R.id.btnPlus_20ct),
+            CoinRow(CoinType.CENT_50, R.id.btnMinus_50ct, R.id.count_50ct, R.id.btnPlus_50ct),
+            CoinRow(CoinType.EURO_1,  R.id.btnMinus_1eu,  R.id.count_1eu,  R.id.btnPlus_1eu),
+            CoinRow(CoinType.EURO_2,  R.id.btnMinus_2eu,  R.id.count_2eu,  R.id.btnPlus_2eu),
+        )
+
+        val counts = mutableMapOf<CoinType, Int>().withDefault { 0 }
+
+        for (row in rows) {
+            val countView = findViewById<TextView>(row.countId)
+            findViewById<Button>(row.plusId).setOnClickListener {
+                val newCount = (counts.getValue(row.type) + 1).coerceAtMost(10)
+                counts[row.type] = newCount
+                countView.text = newCount.toString()
+                simulationView.setCountForType(row.type, newCount)
+            }
+            findViewById<Button>(row.minusId).setOnClickListener {
+                val newCount = (counts.getValue(row.type) - 1).coerceAtLeast(0)
+                counts[row.type] = newCount
+                countView.text = newCount.toString()
+                simulationView.setCountForType(row.type, newCount)
+            }
+        }
     }
     // endregion
 
