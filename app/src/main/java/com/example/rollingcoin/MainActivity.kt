@@ -43,9 +43,17 @@ class MainActivity : AppCompatActivity() {
         setupSettingsToggle()
         setupSliders()
         setupAudioButtons()
+        setupBottomInset()
     }
 
     // region Settings panel
+    private fun setupBottomInset() {
+        val settingsPanel = findViewById<View>(R.id.settingsPanel)
+        settingsPanel.viewTreeObserver.addOnGlobalLayoutListener {
+            simulationView.bottomInset = settingsPanel.height.toFloat()
+        }
+    }
+
     private fun setupSettingsToggle() {
         val collapsibleContent = findViewById<View>(R.id.collapsibleContent)
         val toggleHeader = findViewById<View>(R.id.toggleHeader)
