@@ -42,11 +42,11 @@ class SimulationView @JvmOverloads constructor(
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
         private const val VIBRATION_COOLDOWN_MS = 110L
         private const val SCRAPE_COOLDOWN_MS = 200L
-
-        // Height reserved at the bottom for the settings panel
-        private const val SETTINGS_PANEL_HEIGHT = 600f
     }
     // endregion
+
+    // Set by MainActivity to the actual measured height of the settings panel
+    var bottomInset: Float = 0f
 
     // region Hardware
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -281,7 +281,7 @@ class SimulationView @JvmOverloads constructor(
 
     // region Collision resolution
     private fun resolveWallCollision(coin: Coin, onImpact: (Float) -> Unit) {
-        val bottomLimit = height - (coinRadius + SETTINGS_PANEL_HEIGHT)
+        val bottomLimit = height - (coinRadius + bottomInset)
 
         if (coin.x < coinRadius) {
             val impact = abs(coin.vx)
