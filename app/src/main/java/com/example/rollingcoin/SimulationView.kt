@@ -156,6 +156,18 @@ class SimulationView @JvmOverloads constructor(
     fun reloadScrapeSound() {
         scrapeSoundId = soundPool.load(File(context.filesDir, "custom_scrape.mp3").absolutePath, 1)
     }
+
+    fun resetImpactSound() {
+        File(context.filesDir, "custom_impact.mp3").delete()
+        val resId = context.resources.getIdentifier("coin_impact", "raw", context.packageName)
+        if (resId != 0) impactSoundId = soundPool.load(context, resId, 1)
+    }
+
+    fun resetScrapeSound() {
+        File(context.filesDir, "custom_scrape.mp3").delete()
+        val resId = context.resources.getIdentifier("coin_scrape", "raw", context.packageName)
+        if (resId != 0) scrapeSoundId = soundPool.load(context, resId, 1)
+    }
     // endregion
 
     // region Coin management

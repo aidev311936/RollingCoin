@@ -155,6 +155,15 @@
                         android:textColor="#000000"
                         android:backgroundTint="#DDDDDD"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <Button
+                        android:id="@+id/btnResetImpact"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Reset Impact"
+                        android:textSize="10sp"
+                        android:textColor="#000000"
+                        android:backgroundTint="#DDDDDD"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
                 </LinearLayout>
 
                 <Space android:layout_width="8dp" android:layout_height="wrap_content" />
@@ -178,6 +187,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Load Scrape"
+                        android:textSize="10sp"
+                        android:textColor="#000000"
+                        android:backgroundTint="#DDDDDD"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <Button
+                        android:id="@+id/btnResetScrape"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Reset Scrape"
                         android:textSize="10sp"
                         android:textColor="#000000"
                         android:backgroundTint="#DDDDDD"

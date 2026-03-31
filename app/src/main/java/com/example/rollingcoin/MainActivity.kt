@@ -135,6 +135,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnLoadImpact).setOnClickListener { pickImpactLauncher.launch("audio/*") }
         findViewById<Button>(R.id.btnLoadScrape).setOnClickListener { pickScrapeLauncher.launch("audio/*") }
 
+        findViewById<Button>(R.id.btnResetImpact).setOnClickListener { simulationView.resetImpactSound() }
+        findViewById<Button>(R.id.btnResetScrape).setOnClickListener { simulationView.resetScrapeSound() }
+
         setupRecordButton(
             button = findViewById(R.id.btnRecordImpact),
             file = impactFile,
