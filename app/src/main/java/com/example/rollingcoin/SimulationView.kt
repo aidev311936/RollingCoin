@@ -39,7 +39,7 @@ class SimulationView @JvmOverloads constructor(
         private const val BOUNCE = 0.65f
         private const val SENSOR_SCALE = 0.85f
         private const val COLLISION_ITERATIONS = 3
-        private const val WALL_HAPTIC_BUFFER = 2.5f
+        private const val WALL_HAPTIC_BUFFER = 6.0f
         private const val WALL_IMPACT_THRESHOLD = 1.5f
         private const val COIN_IMPACT_THRESHOLD = 1.8f
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
