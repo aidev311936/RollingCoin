@@ -268,6 +268,13 @@ class SimulationView @JvmOverloads constructor(
         var triggerScrapeSound = false
         var maxImpactVelocity = 0f
 
+        // Snapshot contacts from the previous frame before iterating.
+        // First-contact detection must use this stable snapshot — not the live set —
+        // because the live set is modified within each iteration, which would cause
+        // false "first contact" re-triggers in iteration 3 after a removal in iteration 2.
+        val prevContacts: Map<Int, Set<Int>> = coins.associate { it.id to it.collidingWith.toSet() }
+        for (coin in coins) { coin.collidingWith.clear() }
+
         repeat(COLLISION_ITERATIONS) {
             for (coin in coins) {
                 resolveWallCollision(coin) { impactVelocity ->
@@ -276,7 +283,7 @@ class SimulationView @JvmOverloads constructor(
                     if (impactVelocity > maxImpactVelocity) maxImpactVelocity = impactVelocity
                 }
             }
-            resolveCoinCollisions { impactVelocity, isScrape ->
+            resolveCoinCollisions(prevContacts) { impactVelocity, isScrape ->
                 if (isScrape) {
                     triggerScrapeSound = true
                 } else {
@@ -351,7 +358,10 @@ class SimulationView @JvmOverloads constructor(
         }
     }
 
-    private fun resolveCoinCollisions(onCollision: (velocity: Float, isScrape: Boolean) -> Unit) {
+    private fun resolveCoinCollisions(
+        prevContacts: Map<Int, Set<Int>>,
+        onCollision: (velocity: Float, isScrape: Boolean) -> Unit
+    ) {
         for (i in 0 until coins.size) {
             for (j in i + 1 until coins.size) {
                 val a = coins[i]
@@ -361,11 +371,7 @@ class SimulationView @JvmOverloads constructor(
                 val distSq = dx * dx + dy * dy
                 val minDist = a.radius + b.radius
 
-                if (distSq >= minDist * minDist) {
-                    a.collidingWith.remove(b.id)
-                    b.collidingWith.remove(a.id)
-                    continue
-                }
+                if (distSq >= minDist * minDist) continue
 
                 val dist = sqrt(distSq.toDouble()).toFloat()
                 val normalX: Float
@@ -401,7 +407,8 @@ class SimulationView @JvmOverloads constructor(
                 if (velAlongNormal >= 0) continue
 
                 val impact = abs(velAlongNormal)
-                if (!a.collidingWith.contains(b.id)) {
+                val wasCollidingLastFrame = prevContacts[a.id]?.contains(b.id) == true
+                if (!wasCollidingLastFrame) {
                     // First frame of contact — check for impact sound/vibration
                     if (impact > vibrationThreshold) onCollision(impact, false)
                 } else {
