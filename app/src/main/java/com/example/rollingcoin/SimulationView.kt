@@ -43,6 +43,7 @@ class SimulationView @JvmOverloads constructor(
         private const val WALL_IMPACT_THRESHOLD = 1.5f
         private const val COIN_IMPACT_THRESHOLD = 1.8f
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
+        private const val SCRAPE_MIN_SPEED = 3.0f
         private const val VIBRATION_COOLDOWN_MS = 110L
         private const val SCRAPE_COOLDOWN_MS = 200L
 
@@ -215,10 +216,16 @@ class SimulationView @JvmOverloads constructor(
 
     private fun applyPhysics() {
         for (coin in coins) {
-            // Lighter coins react more strongly to tilt than heavier ones
             val massScale = REFERENCE_MASS_G / coin.mass
-            coin.vx += gravityX * SENSOR_SCALE * accelerationMultiplier * massScale
-            coin.vy += gravityY * SENSOR_SCALE * accelerationMultiplier * massScale
+
+            // Cancel gravity perpendicular to a wall the coin is resting against.
+            // This simulates the wall's normal reaction force: no more gravity-driven
+            // oscillation when a coin is pinned to an edge.
+            val gx = if ((coin.wasHitLeft && gravityX < 0f) || (coin.wasHitRight && gravityX > 0f)) 0f else gravityX
+            val gy = if ((coin.wasHitTop  && gravityY < 0f) || (coin.wasHitBottom && gravityY > 0f)) 0f else gravityY
+
+            coin.vx += gx * SENSOR_SCALE * accelerationMultiplier * massScale
+            coin.vy += gy * SENSOR_SCALE * accelerationMultiplier * massScale
             coin.vx *= friction
             coin.vy *= friction
             coin.x += coin.vx
@@ -412,11 +419,17 @@ class SimulationView @JvmOverloads constructor(
                     // First frame of contact — check for impact sound/vibration
                     if (impact > vibrationThreshold) onCollision(impact, false)
                 } else {
-                    // Already in contact — check for scrape sound
+                    // Already in contact — check for scrape sound.
+                    // Require both coins to be moving; pure gravity-differential between
+                    // different-mass coins resting at a wall creates relative velocity
+                    // that must not be mistaken for an audible scrape.
                     val tangentX = -normalY
                     val tangentY = normalX
                     val tangentVelocity = relVelX * tangentX + relVelY * tangentY
-                    if (abs(tangentVelocity) > SCRAPE_TANGENT_THRESHOLD) onCollision(0f, true)
+                    val aSpeed = sqrt(a.vx * a.vx + a.vy * a.vy)
+                    val bSpeed = sqrt(b.vx * b.vx + b.vy * b.vy)
+                    if (abs(tangentVelocity) > SCRAPE_TANGENT_THRESHOLD &&
+                        aSpeed > SCRAPE_MIN_SPEED && bSpeed > SCRAPE_MIN_SPEED) onCollision(0f, true)
                 }
 
                 // Mass-weighted impulse: heavier coin absorbs less velocity change
