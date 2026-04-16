@@ -18,6 +18,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.AttributeSet
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
 import java.io.File
@@ -53,6 +54,9 @@ class SimulationView @JvmOverloads constructor(
 
         // Reference mass for acceleration scaling (roughly the midpoint of Euro coin weights)
         private const val REFERENCE_MASS_G = 5.0f
+
+        // Set to true to enable CSV-style physics logging via adb logcat -s PHYSICS_DEBUG
+        private const val DEBUG_PHYSICS = false
     }
     // endregion
 
@@ -107,6 +111,13 @@ class SimulationView @JvmOverloads constructor(
     // region Sensor input
     private var gravityX = 0f
     private var gravityY = 0f
+    // endregion
+
+    // region Debug logging state (zero cost when DEBUG_PHYSICS = false)
+    private var debugFrameCount = 0L
+    private val debugGravityCancel = HashMap<Int, Boolean>(16)  // coinId -> gravity was cancelled this frame
+    private val debugScrapeCoins = HashSet<Int>(8)              // coins involved in a scrape this frame
+    private val debugImpactCoins = HashSet<Int>(8)              // coins involved in an impact this frame
     // endregion
 
     // region Bitmaps
@@ -237,6 +248,8 @@ class SimulationView @JvmOverloads constructor(
             val gx = if ((atLeft && gravityX < 0f) || (atRight && gravityX > 0f)) 0f else gravityX
             val gy = if ((atTop  && gravityY < 0f) || (atBottom && gravityY > 0f)) 0f else gravityY
 
+            if (DEBUG_PHYSICS) debugGravityCancel[coin.id] = (gx != gravityX || gy != gravityY)
+
             coin.vx += gx * SENSOR_SCALE * accelerationMultiplier * massScale
             coin.vy += gy * SENSOR_SCALE * accelerationMultiplier * massScale
             coin.vx *= friction
@@ -281,6 +294,17 @@ class SimulationView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        if (DEBUG_PHYSICS) {
+            debugFrameCount++
+            debugGravityCancel.clear()
+            debugScrapeCoins.clear()
+            debugImpactCoins.clear()
+            Log.d("PHYSICS_DEBUG",
+                "F=$debugFrameCount FRAME coins=${coins.size}" +
+                " gravX=${"%.3f".format(gravityX)} gravY=${"%.3f".format(gravityY)}"
+            )
+        }
+
         applyPhysics()
 
         var triggerVibrate = false
@@ -314,6 +338,25 @@ class SimulationView @JvmOverloads constructor(
                     triggerImpactSound = true
                     if (impactVelocity > maxImpactVelocity) maxImpactVelocity = impactVelocity
                 }
+            }
+        }
+
+        if (DEBUG_PHYSICS) {
+            for (coin in coins) {
+                val speed = sqrt(coin.vx * coin.vx + coin.vy * coin.vy)
+                val wallContacts = (if (coin.wasHitLeft) 1 else 0) +
+                    (if (coin.wasHitRight) 1 else 0) +
+                    (if (coin.wasHitTop) 1 else 0) +
+                    (if (coin.wasHitBottom) 1 else 0)
+                Log.d("PHYSICS_DEBUG",
+                    "F=$debugFrameCount COIN=${coin.id} type=${coin.type.name}" +
+                    " x=${"%.1f".format(coin.x)} y=${"%.1f".format(coin.y)}" +
+                    " vx=${"%.3f".format(coin.vx)} vy=${"%.3f".format(coin.vy)}" +
+                    " speed=${"%.3f".format(speed)}" +
+                    " gravCancelled=${debugGravityCancel[coin.id] == true}" +
+                    " wallContacts=$wallContacts coinContacts=${coin.collidingWith.size}" +
+                    " scrape=${coin.id in debugScrapeCoins} impact=${coin.id in debugImpactCoins}"
+                )
             }
         }
 
@@ -413,6 +456,23 @@ class SimulationView @JvmOverloads constructor(
                     overlap = minDist - dist
                 }
 
+                if (DEBUG_PHYSICS) {
+                    val relVx = b.vx - a.vx
+                    val relVy = b.vy - a.vy
+                    val relSpeed = sqrt(relVx * relVx + relVy * relVy)
+                    val tX = -normalY; val tY = normalX
+                    val tangentVel = relVx * tX + relVy * tY
+                    val aGC = debugGravityCancel[a.id] == true
+                    val bGC = debugGravityCancel[b.id] == true
+                    Log.d("PHYSICS_DEBUG",
+                        "F=$debugFrameCount PAIR=${a.id}-${b.id} overlap=${"%.2f".format(overlap)}" +
+                        " relVx=${"%.3f".format(relVx)} relVy=${"%.3f".format(relVy)}" +
+                        " relSpeed=${"%.3f".format(relSpeed)} tangentVel=${"%.3f".format(tangentVel)}" +
+                        " aGravCancelled=$aGC bGravCancelled=$bGC" +
+                        " asymmetric=${aGC != bGC}"
+                    )
+                }
+
                 // Separate overlapping coins — heavier coin moves less
                 val totalMass = a.mass + b.mass
                 val jitter = (random.nextFloat() - 0.5f) * 0.15f
@@ -433,7 +493,10 @@ class SimulationView @JvmOverloads constructor(
                 val wasCollidingLastFrame = prevContacts[a.id]?.contains(b.id) == true
                 if (!wasCollidingLastFrame) {
                     // First frame of contact — check for impact sound/vibration
-                    if (impact > vibrationThreshold) onCollision(impact, false)
+                    if (impact > vibrationThreshold) {
+                        onCollision(impact, false)
+                        if (DEBUG_PHYSICS) { debugImpactCoins += a.id; debugImpactCoins += b.id }
+                    }
                 } else {
                     // Already in contact — check for scrape sound.
                     // Require both coins to be moving; pure gravity-differential between
@@ -445,7 +508,10 @@ class SimulationView @JvmOverloads constructor(
                     val aSpeed = sqrt(a.vx * a.vx + a.vy * a.vy)
                     val bSpeed = sqrt(b.vx * b.vx + b.vy * b.vy)
                     if (abs(tangentVelocity) > SCRAPE_TANGENT_THRESHOLD &&
-                        aSpeed > SCRAPE_MIN_SPEED && bSpeed > SCRAPE_MIN_SPEED) onCollision(0f, true)
+                        aSpeed > SCRAPE_MIN_SPEED && bSpeed > SCRAPE_MIN_SPEED) {
+                        onCollision(0f, true)
+                        if (DEBUG_PHYSICS) { debugScrapeCoins += a.id; debugScrapeCoins += b.id }
+                    }
                 }
 
                 // Mass-weighted impulse: heavier coin absorbs less velocity change
