@@ -40,6 +40,10 @@ class SimulationView @JvmOverloads constructor(
         private const val SENSOR_SCALE = 0.85f
         private const val COLLISION_ITERATIONS = 3
         private const val WALL_HAPTIC_BUFFER = 6.0f
+        // Max outgoing speed after a wall bounce. Small value keeps coins within the
+        // WALL_HAPTIC_BUFFER and close to neighbours so prevContacts stays intact —
+        // preventing both visible oscillation and endless coin-coin re-triggers.
+        private const val MAX_WALL_BOUNCE = 1.5f
         private const val WALL_IMPACT_THRESHOLD = 1.5f
         private const val COIN_IMPACT_THRESHOLD = 1.8f
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
@@ -217,12 +221,21 @@ class SimulationView @JvmOverloads constructor(
     private fun applyPhysics() {
         for (coin in coins) {
             val massScale = REFERENCE_MASS_G / coin.mass
+            val r = coin.radius
+            val bottomLimit = height - (r + bottomInset)
 
-            // Cancel gravity perpendicular to a wall the coin is resting against.
-            // This simulates the wall's normal reaction force: no more gravity-driven
-            // oscillation when a coin is pinned to an edge.
-            val gx = if ((coin.wasHitLeft && gravityX < 0f) || (coin.wasHitRight && gravityX > 0f)) 0f else gravityX
-            val gy = if ((coin.wasHitTop  && gravityY < 0f) || (coin.wasHitBottom && gravityY > 0f)) 0f else gravityY
+            // Cancel gravity perpendicular to a wall only while the coin is actually
+            // touching it (position-based, not flag-based). This simulates the wall's
+            // normal reaction force and stops gravity-driven oscillation.
+            // Using the flag instead would suppress gravity during the outward bounce,
+            // causing the coin to travel further and return with a harder impact.
+            val atLeft   = coin.x <= r + 1.5f
+            val atRight  = coin.x >= width - r - 1.5f
+            val atTop    = coin.y <= r + 1.5f
+            val atBottom = coin.y >= bottomLimit - 1.5f
+
+            val gx = if ((atLeft && gravityX < 0f) || (atRight && gravityX > 0f)) 0f else gravityX
+            val gy = if ((atTop  && gravityY < 0f) || (atBottom && gravityY > 0f)) 0f else gravityY
 
             coin.vx += gx * SENSOR_SCALE * accelerationMultiplier * massScale
             coin.vy += gy * SENSOR_SCALE * accelerationMultiplier * massScale
@@ -293,9 +306,12 @@ class SimulationView @JvmOverloads constructor(
             resolveCoinCollisions(prevContacts) { impactVelocity, isScrape ->
                 if (isScrape) {
                     triggerScrapeSound = true
-                } else {
+                } else if (impactVelocity > COIN_IMPACT_THRESHOLD) {
+                    // Use COIN_IMPACT_THRESHOLD as the floor for both sound and vibration.
+                    // Wall-bounce residuals produce impacts well below this threshold,
+                    // so resting coins at the edge don't trigger feedback endlessly.
                     triggerVibrate = true
-                    if (impactVelocity > COIN_IMPACT_THRESHOLD) triggerImpactSound = true
+                    triggerImpactSound = true
                     if (impactVelocity > maxImpactVelocity) maxImpactVelocity = impactVelocity
                 }
             }
@@ -328,7 +344,7 @@ class SimulationView @JvmOverloads constructor(
             val impact = abs(coin.vx)
             coin.x = r + 0.15f
             if (!coin.wasHitLeft && impact > vibrationThreshold) onImpact(impact)
-            coin.vx *= -BOUNCE
+            coin.vx = (-coin.vx * BOUNCE).coerceAtMost(MAX_WALL_BOUNCE)
             coin.wasHitLeft = true
         } else if (coin.x > r + WALL_HAPTIC_BUFFER) {
             coin.wasHitLeft = false
@@ -338,7 +354,7 @@ class SimulationView @JvmOverloads constructor(
             val impact = abs(coin.vx)
             coin.x = width - r - 0.15f
             if (!coin.wasHitRight && impact > vibrationThreshold) onImpact(impact)
-            coin.vx *= -BOUNCE
+            coin.vx = (-coin.vx * BOUNCE).coerceAtLeast(-MAX_WALL_BOUNCE)
             coin.wasHitRight = true
         } else if (coin.x < width - r - WALL_HAPTIC_BUFFER) {
             coin.wasHitRight = false
@@ -348,7 +364,7 @@ class SimulationView @JvmOverloads constructor(
             val impact = abs(coin.vy)
             coin.y = r + 0.15f
             if (!coin.wasHitTop && impact > vibrationThreshold) onImpact(impact)
-            coin.vy *= -BOUNCE
+            coin.vy = (-coin.vy * BOUNCE).coerceAtMost(MAX_WALL_BOUNCE)
             coin.wasHitTop = true
         } else if (coin.y > r + WALL_HAPTIC_BUFFER) {
             coin.wasHitTop = false
@@ -358,7 +374,7 @@ class SimulationView @JvmOverloads constructor(
             val impact = abs(coin.vy)
             coin.y = bottomLimit - 0.15f
             if (!coin.wasHitBottom && impact > vibrationThreshold) onImpact(impact)
-            coin.vy *= -BOUNCE
+            coin.vy = (-coin.vy * BOUNCE).coerceAtLeast(-MAX_WALL_BOUNCE)
             coin.wasHitBottom = true
         } else if (coin.y < bottomLimit - WALL_HAPTIC_BUFFER) {
             coin.wasHitBottom = false
