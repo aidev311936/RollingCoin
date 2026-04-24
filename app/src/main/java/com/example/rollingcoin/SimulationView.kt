@@ -40,15 +40,25 @@ class SimulationView @JvmOverloads constructor(
         private const val BOUNCE = 0.65f
         private const val SENSOR_SCALE = 0.85f
         private const val COLLISION_ITERATIONS = 3
-        private const val WALL_HAPTIC_BUFFER = 6.0f
+        private const val WALL_HAPTIC_BUFFER = 20.0f
         // Max outgoing speed after a wall bounce. Small value keeps coins within the
         // WALL_HAPTIC_BUFFER and close to neighbours so prevContacts stays intact —
         // preventing both visible oscillation and endless coin-coin re-triggers.
         private const val MAX_WALL_BOUNCE = 1.5f
-        private const val WALL_IMPACT_THRESHOLD = 1.5f
-        private const val COIN_IMPACT_THRESHOLD = 1.8f
+        private const val WALL_IMPACT_THRESHOLD = 3.5f
+        private const val COIN_IMPACT_THRESHOLD = 3.5f
         private const val SCRAPE_TANGENT_THRESHOLD = 3.0f
         private const val SCRAPE_MIN_SPEED = 3.0f
+        // Below this speed, two coins in contact are treated as resting against each
+        // other: impulse and sounds are suppressed, positional correction still runs.
+        // Prevents corner oscillation where corrections inject velocity every frame.
+        private const val COIN_REST_SPEED = 1.0f
+        // Gap tolerance for contact hysteresis: a coin pair separated by less than this
+        // distance after a positional correction is still treated as "in contact" for
+        // first-contact detection purposes. Prevents the correction from producing a
+        // 0.15 px gap that resets collidingWith and triggers a false first-contact sound
+        // on the very next frame.
+        private const val CONTACT_HYSTERESIS = 3f
         private const val VIBRATION_COOLDOWN_MS = 110L
         private const val SCRAPE_COOLDOWN_MS = 200L
 
@@ -235,18 +245,40 @@ class SimulationView @JvmOverloads constructor(
             val r = coin.radius
             val bottomLimit = height - (r + bottomInset)
 
-            // Cancel gravity perpendicular to a wall only while the coin is actually
-            // touching it (position-based, not flag-based). This simulates the wall's
-            // normal reaction force and stops gravity-driven oscillation.
-            // Using the flag instead would suppress gravity during the outward bounce,
-            // causing the coin to travel further and return with a harder impact.
-            val atLeft   = coin.x <= r + 1.5f
-            val atRight  = coin.x >= width - r - 1.5f
-            val atTop    = coin.y <= r + 1.5f
-            val atBottom = coin.y >= bottomLimit - 1.5f
+            // Cancel gravity perpendicular to a wall while the coin is within
+            // WALL_HAPTIC_BUFFER of it. The zone must be at least as wide as the
+            // distance a coin travels in one frame after a MAX_WALL_BOUNCE rebound
+            // (1.5 × friction ≈ 1.39 px); using WALL_HAPTIC_BUFFER (6 px) ensures the
+            // coin stays inside the cancel zone until friction drains its velocity to
+            // zero — preventing gravity from re-accelerating it on the very next frame.
+            val atLeft   = coin.x <= r + WALL_HAPTIC_BUFFER
+            val atRight  = coin.x >= width - r - WALL_HAPTIC_BUFFER
+            val atTop    = coin.y <= r + WALL_HAPTIC_BUFFER
+            val atBottom = coin.y >= bottomLimit - WALL_HAPTIC_BUFFER
 
             val gx = if ((atLeft && gravityX < 0f) || (atRight && gravityX > 0f)) 0f else gravityX
             val gy = if ((atTop  && gravityY < 0f) || (atBottom && gravityY > 0f)) 0f else gravityY
+
+            // Wall-rest: zero slow inward velocity near wall (correction-induced drift).
+            // Speed-limited to MAX_WALL_BOUNCE so fast-approaching coins from outside
+            // the zone are not stopped early — only the small correction-induced
+            // velocities (< 1.5 px/frame) that would otherwise re-overlap neighbours.
+            if (atLeft   && coin.vx < 0f && -coin.vx <= MAX_WALL_BOUNCE) coin.vx = 0f
+            if (atRight  && coin.vx > 0f &&  coin.vx <= MAX_WALL_BOUNCE) coin.vx = 0f
+            if (atTop    && coin.vy < 0f && -coin.vy <= MAX_WALL_BOUNCE) coin.vy = 0f
+            if (atBottom && coin.vy > 0f &&  coin.vy <= MAX_WALL_BOUNCE) coin.vy = 0f
+
+            // Corner-rest: when gravity is cancelled on BOTH axes (coin is pressed into a
+            // corner), zero all slow velocity — not just the inward component. Coin-coin
+            // corrections can inject small outward velocity that the single-axis wall-rest
+            // above wouldn't catch, causing visible trembling in corners.
+            if (gx == 0f && gy == 0f) {
+                val speed = sqrt(coin.vx * coin.vx + coin.vy * coin.vy)
+                if (speed <= MAX_WALL_BOUNCE) {
+                    coin.vx = 0f
+                    coin.vy = 0f
+                }
+            }
 
             if (DEBUG_PHYSICS) debugGravityCancel[coin.id] = (gx != gravityX || gy != gravityY)
 
@@ -309,7 +341,7 @@ class SimulationView @JvmOverloads constructor(
 
         var triggerVibrate = false
         var triggerImpactSound = false
-        var triggerScrapeSound = false
+
         var maxImpactVelocity = 0f
 
         // Snapshot contacts from the previous frame before iterating.
@@ -328,9 +360,7 @@ class SimulationView @JvmOverloads constructor(
                 }
             }
             resolveCoinCollisions(prevContacts) { impactVelocity, isScrape ->
-                if (isScrape) {
-                    triggerScrapeSound = true
-                } else if (impactVelocity > COIN_IMPACT_THRESHOLD) {
+                if (!isScrape && impactVelocity > COIN_IMPACT_THRESHOLD) {
                     // Use COIN_IMPACT_THRESHOLD as the floor for both sound and vibration.
                     // Wall-bounce residuals produce impacts well below this threshold,
                     // so resting coins at the edge don't trigger feedback endlessly.
@@ -372,7 +402,6 @@ class SimulationView @JvmOverloads constructor(
 
         if (triggerVibrate) vibrate(maxImpactVelocity)
         if (triggerImpactSound) playImpactSound(maxImpactVelocity)
-        if (triggerScrapeSound) playScrapeSound()
 
         postInvalidateOnAnimation()
     }
@@ -388,8 +417,16 @@ class SimulationView @JvmOverloads constructor(
             coin.x = r + 0.15f
             if (!coin.wasHitLeft && impact > vibrationThreshold) onImpact(impact)
             coin.vx = (-coin.vx * BOUNCE).coerceAtMost(MAX_WALL_BOUNCE)
+            // Gravity pressing into this wall: kill outgoing bounce velocity.
+            // Without this, coin-coin positional corrections push the wall coin
+            // through the wall; the resulting bounce gives vx=MAX_WALL_BOUNCE which
+            // then drives coin-coin collisions and sustains the scrape loop.
+            if (gravityX < 0f) coin.vx = 0f
             coin.wasHitLeft = true
-        } else if (coin.x > r + WALL_HAPTIC_BUFFER) {
+        } else if (coin.x > r + WALL_HAPTIC_BUFFER && coin.vx > MAX_WALL_BOUNCE) {
+            // Require outward velocity > MAX_WALL_BOUNCE to reset: a correction that
+            // briefly throws the coin past the buffer (at near-zero velocity) must not
+            // count as "leaving the wall" and re-arm the haptic trigger.
             coin.wasHitLeft = false
         }
 
@@ -398,8 +435,9 @@ class SimulationView @JvmOverloads constructor(
             coin.x = width - r - 0.15f
             if (!coin.wasHitRight && impact > vibrationThreshold) onImpact(impact)
             coin.vx = (-coin.vx * BOUNCE).coerceAtLeast(-MAX_WALL_BOUNCE)
+            if (gravityX > 0f) coin.vx = 0f
             coin.wasHitRight = true
-        } else if (coin.x < width - r - WALL_HAPTIC_BUFFER) {
+        } else if (coin.x < width - r - WALL_HAPTIC_BUFFER && coin.vx < -MAX_WALL_BOUNCE) {
             coin.wasHitRight = false
         }
 
@@ -408,8 +446,9 @@ class SimulationView @JvmOverloads constructor(
             coin.y = r + 0.15f
             if (!coin.wasHitTop && impact > vibrationThreshold) onImpact(impact)
             coin.vy = (-coin.vy * BOUNCE).coerceAtMost(MAX_WALL_BOUNCE)
+            if (gravityY < 0f) coin.vy = 0f
             coin.wasHitTop = true
-        } else if (coin.y > r + WALL_HAPTIC_BUFFER) {
+        } else if (coin.y > r + WALL_HAPTIC_BUFFER && coin.vy > MAX_WALL_BOUNCE) {
             coin.wasHitTop = false
         }
 
@@ -418,8 +457,9 @@ class SimulationView @JvmOverloads constructor(
             coin.y = bottomLimit - 0.15f
             if (!coin.wasHitBottom && impact > vibrationThreshold) onImpact(impact)
             coin.vy = (-coin.vy * BOUNCE).coerceAtLeast(-MAX_WALL_BOUNCE)
+            if (gravityY > 0f) coin.vy = 0f
             coin.wasHitBottom = true
-        } else if (coin.y < bottomLimit - WALL_HAPTIC_BUFFER) {
+        } else if (coin.y < bottomLimit - WALL_HAPTIC_BUFFER && coin.vy < -MAX_WALL_BOUNCE) {
             coin.wasHitBottom = false
         }
     }
@@ -437,7 +477,21 @@ class SimulationView @JvmOverloads constructor(
                 val distSq = dx * dx + dy * dy
                 val minDist = a.radius + b.radius
 
-                if (distSq >= minDist * minDist) continue
+                if (distSq >= minDist * minDist) {
+                    // Contact hysteresis: if this pair was in contact last frame and the
+                    // gap is tiny (< CONTACT_HYSTERESIS), keep them in collidingWith.
+                    // Positional corrections leave a ~0.15 px gap after each resolution;
+                    // without this, the pair drops out of collidingWith every frame and
+                    // triggers a false first-contact sound on the next frame.
+                    if (prevContacts[a.id]?.contains(b.id) == true) {
+                        val dist = sqrt(distSq.toDouble()).toFloat()
+                        if (dist - minDist < CONTACT_HYSTERESIS) {
+                            a.collidingWith.add(b.id)
+                            b.collidingWith.add(a.id)
+                        }
+                    }
+                    continue
+                }
 
                 val dist = sqrt(distSq.toDouble()).toFloat()
                 val normalX: Float
@@ -473,7 +527,11 @@ class SimulationView @JvmOverloads constructor(
                     )
                 }
 
-                // Separate overlapping coins — heavier coin moves less
+                // Separate overlapping coins — heavier coin moves less.
+                // Cap correction per frame so coins are never thrown past the wall-cancel
+                // zone (WALL_HAPTIC_BUFFER). Without the cap, large overlaps (measured
+                // at 11–80 px) fling coins 25+ px from the wall, re-activating gravity
+                // and causing repeated wall impacts with audible sound and visible jumping.
                 val totalMass = a.mass + b.mass
                 val jitter = (random.nextFloat() - 0.5f) * 0.15f
                 val correction = overlap + 0.15f
@@ -486,8 +544,30 @@ class SimulationView @JvmOverloads constructor(
                 val relVelY = b.vy - a.vy
                 val velAlongNormal = relVelX * normalX + relVelY * normalY
 
-                // Coins already moving apart — no impulse needed
-                if (velAlongNormal >= 0) continue
+                // Coins already moving apart — no impulse needed, but maintain contact
+                // state so the next frame doesn't see a false first-contact event.
+                // This covers the case where a previous iteration's impulse made them
+                // diverge while they're still physically overlapping (multi-coin chains).
+                if (velAlongNormal >= 0) {
+                    a.collidingWith.add(b.id)
+                    b.collidingWith.add(a.id)
+                    continue
+                }
+
+                // Resting contact: coins barely moving relative to each other.
+                // Using relative speed (not individual speeds) correctly handles the case
+                // where different-mass coins glide together under gravity at different
+                // absolute speeds but with nearly zero relative motion — without this,
+                // the lighter coin's higher gravity acceleration drives a micro-impulse
+                // every frame, causing visible trembling whenever two coins touch.
+                val relSpeed = sqrt(relVelX * relVelX + relVelY * relVelY)
+                val aSpeed = if (DEBUG_PHYSICS) sqrt(a.vx * a.vx + a.vy * a.vy) else 0f
+                val bSpeed = if (DEBUG_PHYSICS) sqrt(b.vx * b.vx + b.vy * b.vy) else 0f
+                if (relSpeed < COIN_REST_SPEED) {
+                    a.collidingWith.add(b.id)
+                    b.collidingWith.add(a.id)
+                    continue
+                }
 
                 val impact = abs(velAlongNormal)
                 val wasCollidingLastFrame = prevContacts[a.id]?.contains(b.id) == true
@@ -505,10 +585,15 @@ class SimulationView @JvmOverloads constructor(
                     val tangentX = -normalY
                     val tangentY = normalX
                     val tangentVelocity = relVelX * tangentX + relVelY * tangentY
-                    val aSpeed = sqrt(a.vx * a.vx + a.vy * a.vy)
-                    val bSpeed = sqrt(b.vx * b.vx + b.vy * b.vy)
+                    // Suppress scrape when overlap is large: the relative velocity is
+                    // driven by positional correction, not real sliding. Log data showed
+                    // correction-induced overlaps of 11–80 px vs. genuine scrape overlap
+                    // of 1–3 px. Threshold 15% of smaller radius (≈7.5 px at r=50)
+                    // safely separates the two cases.
+                    val scrapeOverlapLimit = minOf(a.radius, b.radius) * 0.15f
                     if (abs(tangentVelocity) > SCRAPE_TANGENT_THRESHOLD &&
-                        aSpeed > SCRAPE_MIN_SPEED && bSpeed > SCRAPE_MIN_SPEED) {
+                        aSpeed > SCRAPE_MIN_SPEED && bSpeed > SCRAPE_MIN_SPEED &&
+                        overlap < scrapeOverlapLimit) {
                         onCollision(0f, true)
                         if (DEBUG_PHYSICS) { debugScrapeCoins += a.id; debugScrapeCoins += b.id }
                     }
@@ -532,7 +617,8 @@ class SimulationView @JvmOverloads constructor(
     private fun playImpactSound(velocity: Float) {
         if (impactSoundId == -1) return
         val volume = (velocity / 25f).coerceIn(0.1f, 1.0f) * volumePercent
-        soundPool.play(impactSoundId, volume, volume, 1, 0, 1f)
+        // Pitch 0.6 → lower, duller tone — like a coin striking the inside of a phone case
+        soundPool.play(impactSoundId, volume, volume, 1, 0, 0.6f)
     }
 
     private fun playScrapeSound() {
