@@ -183,7 +183,8 @@ class World(
         if (a.sleeping && !b.sleeping && impactSpeed > wakeThreshold) { a.sleeping = false; a.sleepFrames = 0 }
         if (b.sleeping && !a.sleeping && impactSpeed > wakeThreshold) { b.sleeping = false; b.sleepFrames = 0 }
 
-        return null
+        val settled = maxOf(a.wakeFrames, b.wakeFrames) >= 15
+        return if (impactSpeed > 250f && settled) CollisionEvent(CollisionType.COIN_COIN, impactSpeed, a.id, b.id) else null
     }
 
     private fun updateSleep(coin: CoinState) {
