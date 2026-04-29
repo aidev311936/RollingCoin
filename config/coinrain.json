@@ -26,6 +26,7 @@
     "starCount": 12,
     "starRadiusRatio": 0.72
   },
+  "defaultCoins": ["CENT_1", "CENT_1", "CENT_20", "EURO_1"],
   "coins": [
     {
       "id": "CENT_1",

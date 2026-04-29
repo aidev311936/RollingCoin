@@ -17,12 +17,7 @@ class MainActivity : AppCompatActivity() {
         coinRainView = findViewById(R.id.coinRainView)
         sensorAdapter = SensorAdapter(this, coinRainView)
 
-        coinRainView.post {
-            coinRainView.clearCoins()
-            coinRainView.addCoins("CENT_20", 5)
-            coinRainView.addCoins("EURO_1", 3)
-            coinRainView.addCoins("EURO_2", 2)
-        }
+        coinRainView.post { coinRainView.spawnDefaultCoins() }
     }
 
     override fun onResume() {

@@ -73,12 +73,14 @@ class SensorAdapter(private val context: Context, private val view: CoinRainView
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
 
+    // TYPE_GRAVITY gives the gravity vector in device coords: positive = direction gravity is pulling.
+    // Rotate into screen coords using the standard 2-D rotation matrix for display rotation.
     private fun remapGravity(rawX: Float, rawY: Float, rotation: Int): Pair<Float, Float> =
         when (rotation) {
-            Surface.ROTATION_0   ->  Pair(rawX, -rawY)
-            Surface.ROTATION_90  ->  Pair(-rawY, -rawX)
-            Surface.ROTATION_180 ->  Pair(-rawX, rawY)
-            Surface.ROTATION_270 ->  Pair(rawY, rawX)
-            else                 ->  Pair(rawX, -rawY)
+            Surface.ROTATION_0   ->  Pair( rawX,  rawY)
+            Surface.ROTATION_90  ->  Pair( rawY, -rawX)
+            Surface.ROTATION_180 ->  Pair(-rawX, -rawY)
+            Surface.ROTATION_270 ->  Pair(-rawY,  rawX)
+            else                 ->  Pair( rawX,  rawY)
         }
 }

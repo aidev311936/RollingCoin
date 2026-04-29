@@ -106,6 +106,14 @@ class ProceduralCoinRenderer : CoinRenderer {
         p.color = Color.argb(120, 0, 0, 0)
         c.drawCircle(cx, cy, radiusPx - p.strokeWidth / 2f, p)
 
+        // Denomination label
+        p.style = Paint.Style.FILL
+        p.textSize = radiusPx * 0.38f
+        p.textAlign = Paint.Align.CENTER
+        p.isFakeBoldText = true
+        p.color = Color.argb(200, 40, 20, 0)
+        c.drawText(spec.label, cx, cy + p.textSize * 0.35f, p)
+
         return bmp
     }
 }

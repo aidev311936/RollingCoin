@@ -36,6 +36,8 @@ val generateConfig by tasks.registering {
         val rendering = json["rendering"] as Map<String, Any>
         @Suppress("UNCHECKED_CAST")
         val coins   = json["coins"]   as List<Map<String, Any>>
+        @Suppress("UNCHECKED_CAST")
+        val defaultCoins = json["defaultCoins"] as List<String>
 
         fun Number.f() = "${toDouble()}f"
         fun Map<String, Any>.f(key: String) = (get(key) as Number).f()
@@ -106,6 +108,8 @@ val generateConfig by tasks.registering {
             appendLine("    val COINS: List<CoinSpec> = listOf(")
             appendLine("        $coinLines")
             appendLine("    )")
+            val defaultList = defaultCoins.joinToString(", ") { "\"$it\"" }
+            appendLine("    val DEFAULT_COINS: List<String> = listOf($defaultList)")
             appendLine("}")
             appendLine()
             appendLine("data class CoinSpec(")

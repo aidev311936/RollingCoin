@@ -52,6 +52,11 @@ class CoinRainView @JvmOverloads constructor(
         addCoins(specId, count)
     }
 
+    fun spawnDefaultCoins() {
+        world.clearCoins()
+        CoinRainConfig.DEFAULT_COINS.forEach { specId -> addCoins(specId, 1) }
+    }
+
     fun start() {
         renderThread?.let { if (it.running) return }
     }

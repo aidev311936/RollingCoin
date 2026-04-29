@@ -73,8 +73,8 @@ class World(
                 val dragFactor = 1f - CoinRainConfig.Physics.AIR_DRAG_COEFF * coin.radiusPx * coin.radiusPx / coin.massG
                 coin.vel = (coin.vel + gravity * dt) * CoinRainConfig.Physics.FRICTION * dragFactor.coerceIn(0.9f, 1f)
                 coin.pos = coin.pos + coin.vel * dt
-                // cosmetic rotation proportional to horizontal velocity
-                coin.angle += coin.vel.x * dt * 0.05f
+                // rolling rotation: dθ = vx * dt / r  (half-speed factor avoids spinner look)
+                coin.angle += coin.vel.x * dt / coin.radiusPx * 0.5f
             }
 
             // 2. Resolve wall collisions (sleeping coins too — position correction can push them OOB)
