@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoinRain Configuration",
+  "type": "object",
+  "required": ["physics", "sound", "rendering", "coins"],
+  "properties": {
+    "physics": {
+      "type": "object",
+      "properties": {
+        "simHz":                   { "type": "number",  "description": "Simulation rate in Hz" },
+        "restitution":             { "type": "number",  "description": "Wall/floor bounce coefficient (0–1)" },
+        "restitutionSlopVelocity": { "type": "number",  "description": "Below this inward speed (px/s), restitution = 0" },
+        "friction":                { "type": "number",  "description": "Per-step velocity multiplier (0–1)" },
+        "airDragCoeff":            { "type": "number",  "description": "Air drag per step, proportional to cross-section" },
+        "sleepVelocityThreshold":  { "type": "number",  "description": "Speed (px/s) below which sleep counter increments" },
+        "sleepAccelThreshold":     { "type": "number",  "description": "Gravity magnitude (px/s²) below which sleep counter increments" },
+        "sleepFrames":             { "type": "integer", "description": "Frames below threshold before a coin sleeps" },
+        "wakeShakeThreshold":      { "type": "number",  "description": "Gravity delta (px/s²) that wakes all sleeping coins" },
+        "positionCorrectionSlop":  { "type": "number",  "description": "Extra separation added to each correction (px)" },
+        "positionSolverIterations":{ "type": "integer", "description": "Coin-coin correction passes per physics step" }
+      }
+    },
+    "sound": {
+      "type": "object",
+      "properties": {
+        "energyThreshold":   { "type": "number",  "description": "Min impact kinetic energy (px²/s²) to generate a sound" },
+        "pitchVariation":    { "type": "number",  "description": "Random pitch variation ±fraction" },
+        "decayVariation":    { "type": "number",  "description": "Random decay variation ±fraction" },
+        "mixerMaxStreams":   { "type": "integer", "description": "Max simultaneous sounds; oldest dropped when exceeded" },
+        "noiseFilterLowHz": { "type": "number",  "description": "Highpass cutoff for noise burst (Hz)" },
+        "noiseFilterHighHz":{ "type": "number",  "description": "Lowpass cutoff for noise burst (Hz)" },
+        "noiseDurationMs":  { "type": "number",  "description": "Duration of initial noise burst (ms)" }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "properties": {
+        "rimRidgeCount":  { "type": "integer", "description": "Number of rim ridges drawn around coin edge" },
+        "starCount":      { "type": "integer", "description": "Number of EU stars in the ring (typically 12)" },
+        "starRadiusRatio":{ "type": "number",  "description": "Star ring radius as fraction of coin radius" }
+      }
+    },
+    "coins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "diameterMm", "weightG", "color", "rimColor", "soundFreqHz", "soundDecayMs"],
+        "properties": {
+          "id":           { "type": "string", "description": "Unique identifier, e.g. CENT_1" },
+          "label":        { "type": "string", "description": "Display label, e.g. '1 ct'" },
+          "diameterMm":   { "type": "number", "description": "Physical diameter in millimetres (ECB spec)" },
+          "weightG":      { "type": "number", "description": "Physical weight in grams (ECB spec)" },
+          "color":        { "type": "string", "description": "Hex color of coin face, e.g. #B87333" },
+          "rimColor":     { "type": "string", "description": "Hex color of coin rim/ridges" },
+          "centerColor":  { "type": "string", "description": "Hex color of bimetallic center (bimetallic coins only)" },
+          "glossAlpha":   { "type": "number", "description": "Opacity of gloss gradient overlay (0–1)" },
+          "bimetallic":   { "type": "boolean","description": "True if the coin has a two-tone bimetallic design" },
+          "soundFreqHz":  { "type": "number", "description": "Fundamental resonance frequency for impact sound (Hz)" },
+          "soundDecayMs": { "type": "number", "description": "Base decay time of resonance (ms)" }
+        }
+      }
+    }
+  }
+}
