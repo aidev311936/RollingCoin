@@ -89,14 +89,16 @@ class SensorAdapter(private val context: Context, private val view: CoinRainView
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
 
-    // TYPE_GRAVITY gives the gravity vector in device coords: positive = direction gravity is pulling.
-    // Rotate into screen coords using the standard 2-D rotation matrix for display rotation.
+    // TYPE_GRAVITY reports the reaction force (normal force), not the gravitational pull.
+    // Device X is parallel to screen X, so the reaction-force sign must be flipped for X.
+    // Device Y is anti-parallel to screen Y (device +Y = up, screen +Y = down), so the
+    // two negations cancel and rawY maps correctly without extra sign flip.
     private fun remapGravity(rawX: Float, rawY: Float, rotation: Int): Pair<Float, Float> =
         when (rotation) {
-            Surface.ROTATION_0   ->  Pair( rawX,  rawY)
-            Surface.ROTATION_90  ->  Pair( rawY,  rawX)
-            Surface.ROTATION_180 ->  Pair(-rawX, -rawY)
-            Surface.ROTATION_270 ->  Pair(-rawY, -rawX)
-            else                 ->  Pair( rawX,  rawY)
+            Surface.ROTATION_0   ->  Pair(-rawX,  rawY)
+            Surface.ROTATION_90  ->  Pair(-rawY,  rawX)
+            Surface.ROTATION_180 ->  Pair( rawX, -rawY)
+            Surface.ROTATION_270 ->  Pair( rawY, -rawX)
+            else                 ->  Pair(-rawX,  rawY)
         }
 }

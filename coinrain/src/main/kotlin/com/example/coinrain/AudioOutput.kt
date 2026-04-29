@@ -60,14 +60,12 @@ class AudioOutput(private val sampleRate: Int = 44100) {
             val iter = queue.iterator()
             while (iter.hasNext()) {
                 val cursor = iter.next()
-                var mixed = false
                 for (i in chunk.indices) {
-                    if (cursor.pos >= cursor.samples.size) { iter.remove(); break }
+                    if (cursor.pos >= cursor.samples.size) break
                     val sum = chunk[i].toInt() + cursor.samples[cursor.pos++].toInt()
                     chunk[i] = sum.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-                    mixed = true
                 }
-                if (!mixed) iter.remove()
+                if (cursor.pos >= cursor.samples.size) iter.remove()
             }
             track.write(chunk, 0, chunk.size)
         }
