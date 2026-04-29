@@ -73,3 +73,7 @@ lint/tmp/
 
 # Mac
 .DS_Store
+
+# Local dev artifacts
+debug-logs/
+.claude/settings.json
