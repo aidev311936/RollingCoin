@@ -47,6 +47,7 @@ class AudioOutput(private val sampleRate: Int = 44100) {
 
     fun release() {
         running = false
+        mixerThread.join(500)
         track.stop()
         track.release()
     }

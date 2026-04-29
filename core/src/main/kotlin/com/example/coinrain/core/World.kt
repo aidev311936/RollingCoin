@@ -37,7 +37,7 @@ class World(
         it.sleeping = false; it.sleepFrames = 0
     } }
 
-    fun wakeAll() = lock.withLock { _coins.forEach { it.sleeping = false; it.sleepFrames = 0 } }
+    fun wakeAll() = lock.withLock { _coins.forEach { it.sleeping = false; it.sleepFrames = 0; it.wakeFrames = 0 } }
 
     fun applyShakeImpulse(impulse: Vec2) {
         pendingImpulse = impulse
@@ -73,8 +73,6 @@ class World(
                 val dragFactor = 1f - CoinRainConfig.Physics.AIR_DRAG_COEFF * coin.radiusPx * coin.radiusPx / coin.massG
                 coin.vel = (coin.vel + gravity * dt) * CoinRainConfig.Physics.FRICTION * dragFactor.coerceIn(0.9f, 1f)
                 coin.pos = coin.pos + coin.vel * dt
-                // rolling rotation: dθ = vx * dt / r  (half-speed factor avoids spinner look)
-                coin.angle += coin.vel.x * dt / coin.radiusPx * 0.5f
             }
 
             // 2. Resolve wall collisions (sleeping coins too — position correction can push them OOB)
@@ -86,9 +84,10 @@ class World(
             val grid = UniformGrid(CoinRainConfig.COINS.maxOf { it.diameterMm } * 10f)
             for (coin in _coins) grid.insert(coin)
 
-            repeat(CoinRainConfig.Physics.POSITION_SOLVER_ITERATIONS) {
+            repeat(CoinRainConfig.Physics.POSITION_SOLVER_ITERATIONS) { iteration ->
                 for ((a, b) in grid.candidatePairs()) {
-                    resolveCoinPair(a, b)?.let { events += it }
+                    val event = resolveCoinPair(a, b)
+                    if (iteration == 0) event?.let { events += it }
                 }
             }
 
@@ -113,7 +112,7 @@ class World(
             coin.pos = coin.pos.copy(x = r)
             val e = if (speed < slop) 0f else CoinRainConfig.Physics.RESTITUTION
             coin.vel = coin.vel.copy(x = speed * e)
-            if (speed > 0f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
+            if (speed > 150f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
         }
         // Right wall
         if (coin.pos.x > w - r) {
@@ -121,7 +120,7 @@ class World(
             coin.pos = coin.pos.copy(x = w - r)
             val e = if (speed < slop) 0f else CoinRainConfig.Physics.RESTITUTION
             coin.vel = coin.vel.copy(x = -speed * e)
-            if (speed > 0f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
+            if (speed > 150f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
         }
         // Top wall
         if (coin.pos.y < r) {
@@ -129,7 +128,7 @@ class World(
             coin.pos = coin.pos.copy(y = r)
             val e = if (speed < slop) 0f else CoinRainConfig.Physics.RESTITUTION
             coin.vel = coin.vel.copy(y = speed * e)
-            if (speed > 0f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
+            if (speed > 150f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
         }
         // Bottom wall
         if (coin.pos.y > h - r) {
@@ -137,7 +136,7 @@ class World(
             coin.pos = coin.pos.copy(y = h - r)
             val e = if (speed < slop) 0f else CoinRainConfig.Physics.RESTITUTION
             coin.vel = coin.vel.copy(y = -speed * e)
-            if (speed > 0f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
+            if (speed > 150f) events += CollisionEvent(CollisionType.WALL, speed, coin.id)
         }
         return events
     }
@@ -184,11 +183,13 @@ class World(
         if (a.sleeping && !b.sleeping && impactSpeed > wakeThreshold) { a.sleeping = false; a.sleepFrames = 0 }
         if (b.sleeping && !a.sleeping && impactSpeed > wakeThreshold) { b.sleeping = false; b.sleepFrames = 0 }
 
-        return if (impactSpeed > 1f) CollisionEvent(CollisionType.COIN_COIN, impactSpeed, a.id, b.id) else null
+        val settled = maxOf(a.wakeFrames, b.wakeFrames) >= 15
+        return if (impactSpeed > 250f && settled) CollisionEvent(CollisionType.COIN_COIN, impactSpeed, a.id, b.id) else null
     }
 
     private fun updateSleep(coin: CoinState) {
         if (coin.sleeping) return
+        coin.wakeFrames++
         // Sleep when velocity is low enough — the wall/floor restitution slop ensures
         // resting coins converge to near-zero velocity regardless of gravity magnitude.
         if (coin.vel.length() < CoinRainConfig.Physics.SLEEP_VELOCITY_THRESHOLD) {
@@ -196,6 +197,7 @@ class World(
             if (coin.sleepFrames >= CoinRainConfig.Physics.SLEEP_FRAMES) {
                 coin.sleeping = true
                 coin.vel = Vec2.ZERO
+                coin.wakeFrames = 0
             }
         } else {
             coin.sleepFrames = 0

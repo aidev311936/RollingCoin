@@ -42,7 +42,8 @@ class CoinRainView @JvmOverloads constructor(
                 pos = Vec2(
                     (radiusPx + rng.nextFloat() * (world.widthPx - 2 * radiusPx)).coerceAtLeast(radiusPx),
                     -radiusPx * (i + 1)
-                )
+                ),
+                angle = rng.nextFloat() * kotlin.math.PI.toFloat() * 2f
             ))
         }
     }
@@ -65,12 +66,17 @@ class CoinRainView @JvmOverloads constructor(
 
     fun resume() = renderThread?.resumeRendering()
 
-    fun stop() {
+    private fun stopRenderThread() {
         renderThread?.running = false
         renderThread?.resumeRendering()
         renderThread?.join()
         renderThread = null
+    }
+
+    fun stop() {
+        stopRenderThread()
         audio.release()
+        renderer.release()
     }
 
     override fun surfaceCreated(h: SurfaceHolder) {
@@ -87,7 +93,6 @@ class CoinRainView @JvmOverloads constructor(
     }
 
     override fun surfaceDestroyed(h: SurfaceHolder) {
-        stop()
-        renderer.release()
+        stopRenderThread()
     }
 }

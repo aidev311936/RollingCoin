@@ -9,5 +9,6 @@ class CoinState(
     var vel: Vec2 = Vec2.ZERO,
     var angle: Float = 0f,
     var sleepFrames: Int = 0,
-    var sleeping: Boolean = false
+    var sleeping: Boolean = false,
+    var wakeFrames: Int = 0
 )
