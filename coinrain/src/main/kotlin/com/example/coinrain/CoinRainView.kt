@@ -16,8 +16,7 @@ class CoinRainView @JvmOverloads constructor(
     private val specMap: Map<String, CoinSpec> = CoinRainConfig.COINS.associateBy { it.id }
     val world = World(widthPx = 1f, heightPx = 1f)
     private val renderer = ProceduralCoinRenderer()
-    private val synth = SoundSynthesizer()
-    private val audio = AudioOutput(synth.sampleRate)
+    private val player = CoinImpactPlayer(context)
     private var renderThread: RenderThread? = null
 
     init {
@@ -75,12 +74,13 @@ class CoinRainView @JvmOverloads constructor(
 
     fun stop() {
         stopRenderThread()
-        audio.release()
+        player.release()
         renderer.release()
     }
 
     override fun surfaceCreated(h: SurfaceHolder) {
-        val rt = RenderThread(h, world, renderer, audio, synth, specMap)
+        player.load()
+        val rt = RenderThread(h, world, renderer, player, specMap)
         renderThread = rt
         rt.start()
     }

@@ -5,15 +5,13 @@ import android.graphics.Color
 import android.view.SurfaceHolder
 import com.example.coinrain.core.CoinRainConfig
 import com.example.coinrain.core.CoinSpec
-import com.example.coinrain.core.SoundSynthesizer
 import com.example.coinrain.core.World
 
 class RenderThread(
     private val holder: SurfaceHolder,
     private val world: World,
     private val renderer: CoinRenderer,
-    private val audio: AudioOutput,
-    private val synth: SoundSynthesizer,
+    private val player: CoinImpactPlayer,
     private val specs: Map<String, CoinSpec>
 ) : Thread("CoinRainRenderThread") {
 
@@ -21,7 +19,6 @@ class RenderThread(
     @Volatile var running = false
 
     private val pauseLock = Object()
-    private val dt = 1f / CoinRainConfig.Physics.SIM_HZ
 
     override fun run() {
         running = true
@@ -39,9 +36,7 @@ class RenderThread(
 
             val events = world.step(delta)
             for (event in events) {
-                val spec = specs[world.coins.firstOrNull { it.id == event.coinAId }?.specId] ?: continue
-                val samples = synth.synthesizeImpact(spec, event.velocityPxPerSec) ?: continue
-                audio.play(samples)
+                player.play(event.velocityPxPerSec)
             }
 
             val canvas: Canvas? = holder.lockCanvas()
