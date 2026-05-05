@@ -13,13 +13,9 @@
     "positionSolverIterations": 6
   },
   "sound": {
-    "energyThreshold": 200.0,
-    "pitchVariation": 0.15,
-    "decayVariation": 0.20,
-    "mixerMaxStreams": 8,
-    "noiseFilterLowHz": 2000.0,
-    "noiseFilterHighHz": 8000.0,
-    "noiseDurationMs": 5.0
+    "enabled": true,
+    "masterVolume": 0.8,
+    "minImpactVelocityForSound": 80.0
   },
   "rendering": {
     "rimRidgeCount": 24,
@@ -35,9 +31,7 @@
       "weightG": 2.30,
       "color": "#B87333",
       "rimColor": "#8B5E3C",
-      "glossAlpha": 0.35,
-      "soundFreqHz": 2800.0,
-      "soundDecayMs": 70.0
+      "glossAlpha": 0.35
     },
     {
       "id": "CENT_2",
@@ -46,9 +40,7 @@
       "weightG": 3.06,
       "color": "#B87333",
       "rimColor": "#8B5E3C",
-      "glossAlpha": 0.35,
-      "soundFreqHz": 2600.0,
-      "soundDecayMs": 80.0
+      "glossAlpha": 0.35
     },
     {
       "id": "CENT_5",
@@ -57,9 +49,7 @@
       "weightG": 3.92,
       "color": "#B87333",
       "rimColor": "#8B5E3C",
-      "glossAlpha": 0.35,
-      "soundFreqHz": 2400.0,
-      "soundDecayMs": 90.0
+      "glossAlpha": 0.35
     },
     {
       "id": "CENT_10",
@@ -68,9 +58,7 @@
       "weightG": 4.10,
       "color": "#C8963E",
       "rimColor": "#A0762E",
-      "glossAlpha": 0.40,
-      "soundFreqHz": 3200.0,
-      "soundDecayMs": 85.0
+      "glossAlpha": 0.40
     },
     {
       "id": "CENT_20",
@@ -79,9 +67,7 @@
       "weightG": 5.74,
       "color": "#C8963E",
       "rimColor": "#A0762E",
-      "glossAlpha": 0.40,
-      "soundFreqHz": 3000.0,
-      "soundDecayMs": 95.0
+      "glossAlpha": 0.40
     },
     {
       "id": "CENT_50",
@@ -90,9 +76,7 @@
       "weightG": 7.80,
       "color": "#C8963E",
       "rimColor": "#A0762E",
-      "glossAlpha": 0.40,
-      "soundFreqHz": 2900.0,
-      "soundDecayMs": 110.0
+      "glossAlpha": 0.40
     },
     {
       "id": "EURO_1",
@@ -103,9 +87,7 @@
       "rimColor": "#A0A0A0",
       "centerColor": "#C8963E",
       "glossAlpha": 0.45,
-      "bimetallic": true,
-      "soundFreqHz": 3500.0,
-      "soundDecayMs": 105.0
+      "bimetallic": true
     },
     {
       "id": "EURO_2",
@@ -116,9 +98,7 @@
       "rimColor": "#A0762E",
       "centerColor": "#C0C0C0",
       "glossAlpha": 0.45,
-      "bimetallic": true,
-      "soundFreqHz": 3800.0,
-      "soundDecayMs": 120.0
+      "bimetallic": true
     }
   ]
 }

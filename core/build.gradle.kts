@@ -65,9 +65,7 @@ val generateConfig by tasks.registering {
                 append("            rimColor = ${hexToArgb(c.s("rimColor"))},\n")
                 if (bimetallic) append("            centerColor = ${hexToArgb(c.s("centerColor", "#000000"))},\n")
                 append("            glossAlpha = ${c.f("glossAlpha")},\n")
-                append("            bimetallic = $bimetallic,\n")
-                append("            soundFreqHz = ${c.f("soundFreqHz")},\n")
-                append("            soundDecayMs = ${c.f("soundDecayMs")}\n")
+                append("            bimetallic = $bimetallic\n")
                 append("        )")
             }
         }
@@ -92,13 +90,9 @@ val generateConfig by tasks.registering {
             appendLine("        const val POSITION_SOLVER_ITERATIONS: Int = ${physics.i("positionSolverIterations")}")
             appendLine("    }")
             appendLine("    object Sound {")
-            appendLine("        const val ENERGY_THRESHOLD: Float = ${sound.f("energyThreshold")}")
-            appendLine("        const val PITCH_VARIATION: Float = ${sound.f("pitchVariation")}")
-            appendLine("        const val DECAY_VARIATION: Float = ${sound.f("decayVariation")}")
-            appendLine("        const val MIXER_MAX_STREAMS: Int = ${sound.i("mixerMaxStreams")}")
-            appendLine("        const val NOISE_FILTER_LOW_HZ: Float = ${sound.f("noiseFilterLowHz")}")
-            appendLine("        const val NOISE_FILTER_HIGH_HZ: Float = ${sound.f("noiseFilterHighHz")}")
-            appendLine("        const val NOISE_DURATION_MS: Float = ${sound.f("noiseDurationMs")}")
+            appendLine("        const val ENABLED: Boolean = ${sound.b("enabled", true)}")
+            appendLine("        const val MASTER_VOLUME: Float = ${sound.f("masterVolume")}")
+            appendLine("        const val MIN_IMPACT_VELOCITY_FOR_SOUND: Float = ${sound.f("minImpactVelocityForSound")}")
             appendLine("    }")
             appendLine("    object Rendering {")
             appendLine("        const val RIM_RIDGE_COUNT: Int = ${rendering.i("rimRidgeCount")}")
@@ -121,9 +115,7 @@ val generateConfig by tasks.registering {
             appendLine("    val rimColor: Int,")
             appendLine("    val centerColor: Int = 0,")
             appendLine("    val glossAlpha: Float = 0.35f,")
-            appendLine("    val bimetallic: Boolean = false,")
-            appendLine("    val soundFreqHz: Float,")
-            appendLine("    val soundDecayMs: Float")
+            appendLine("    val bimetallic: Boolean = false")
             appendLine(")")
         }
 
@@ -140,15 +132,3 @@ kotlin.sourceSets["main"].kotlin.srcDir(
 
 tasks.named("compileKotlin") { dependsOn(generateConfig) }
 
-// ---------------------------------------------------------------------------
-// Sound preview CLI task
-// ---------------------------------------------------------------------------
-
-tasks.register<JavaExec>("runSoundPreview") {
-    group = "verification"
-    description = "Generates WAV files for all coin denominations to build/sound-preview/"
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.example.coinrain.core.SoundPreviewKt")
-    args = listOf(layout.buildDirectory.dir("sound-preview").get().asFile.absolutePath)
-    dependsOn("classes")
-}

@@ -23,13 +23,9 @@
     "sound": {
       "type": "object",
       "properties": {
-        "energyThreshold":   { "type": "number",  "description": "Min impact kinetic energy (px²/s²) to generate a sound" },
-        "pitchVariation":    { "type": "number",  "description": "Random pitch variation ±fraction" },
-        "decayVariation":    { "type": "number",  "description": "Random decay variation ±fraction" },
-        "mixerMaxStreams":   { "type": "integer", "description": "Max simultaneous sounds; oldest dropped when exceeded" },
-        "noiseFilterLowHz": { "type": "number",  "description": "Highpass cutoff for noise burst (Hz)" },
-        "noiseFilterHighHz":{ "type": "number",  "description": "Lowpass cutoff for noise burst (Hz)" },
-        "noiseDurationMs":  { "type": "number",  "description": "Duration of initial noise burst (ms)" }
+        "enabled":                    { "type": "boolean", "description": "Master switch for sound playback" },
+        "masterVolume":               { "type": "number",  "description": "Overall playback volume (0–1)" },
+        "minImpactVelocityForSound":  { "type": "number",  "description": "Min impact speed (px/s) to trigger a sound" }
       }
     },
     "rendering": {
@@ -44,19 +40,17 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "label", "diameterMm", "weightG", "color", "rimColor", "soundFreqHz", "soundDecayMs"],
+        "required": ["id", "label", "diameterMm", "weightG", "color", "rimColor"],
         "properties": {
-          "id":           { "type": "string", "description": "Unique identifier, e.g. CENT_1" },
-          "label":        { "type": "string", "description": "Display label, e.g. '1 ct'" },
-          "diameterMm":   { "type": "number", "description": "Physical diameter in millimetres (ECB spec)" },
-          "weightG":      { "type": "number", "description": "Physical weight in grams (ECB spec)" },
-          "color":        { "type": "string", "description": "Hex color of coin face, e.g. #B87333" },
-          "rimColor":     { "type": "string", "description": "Hex color of coin rim/ridges" },
-          "centerColor":  { "type": "string", "description": "Hex color of bimetallic center (bimetallic coins only)" },
-          "glossAlpha":   { "type": "number", "description": "Opacity of gloss gradient overlay (0–1)" },
-          "bimetallic":   { "type": "boolean","description": "True if the coin has a two-tone bimetallic design" },
-          "soundFreqHz":  { "type": "number", "description": "Fundamental resonance frequency for impact sound (Hz)" },
-          "soundDecayMs": { "type": "number", "description": "Base decay time of resonance (ms)" }
+          "id":           { "type": "string",  "description": "Unique identifier, e.g. CENT_1" },
+          "label":        { "type": "string",  "description": "Display label, e.g. '1 ct'" },
+          "diameterMm":   { "type": "number",  "description": "Physical diameter in millimetres (ECB spec)" },
+          "weightG":      { "type": "number",  "description": "Physical weight in grams (ECB spec)" },
+          "color":        { "type": "string",  "description": "Hex color of coin face, e.g. #B87333" },
+          "rimColor":     { "type": "string",  "description": "Hex color of coin rim/ridges" },
+          "centerColor":  { "type": "string",  "description": "Hex color of bimetallic center (bimetallic coins only)" },
+          "glossAlpha":   { "type": "number",  "description": "Opacity of gloss gradient overlay (0–1)" },
+          "bimetallic":   { "type": "boolean", "description": "True if the coin has a two-tone bimetallic design" }
         }
       }
     }
