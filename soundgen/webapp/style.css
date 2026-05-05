@@ -1,0 +1,186 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #1a1a1e;
+    --surface: #26262c;
+    --surface2: #2f2f37;
+    --accent: #7c6df0;
+    --accent2: #a89df5;
+    --text: #e8e6f0;
+    --text2: #9896a8;
+    --border: #3a3a44;
+    --radius: 8px;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+}
+
+h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--accent2);
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: var(--text2);
+    margin-bottom: 24px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+
+.card h2 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 14px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.row label {
+    font-size: 0.82rem;
+    color: var(--text2);
+    min-width: 160px;
+    flex-shrink: 0;
+}
+
+.row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+}
+
+.val {
+    font-size: 0.8rem;
+    color: var(--text);
+    min-width: 64px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.row input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.row select {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.82rem;
+}
+
+.row .radio-group { display: flex; gap: 12px; }
+.row .radio-group label {
+    min-width: unset;
+    display: flex; align-items: center; gap: 4px;
+    cursor: pointer; font-size: 0.82rem; color: var(--text);
+}
+.row .radio-group input[type="radio"] { accent-color: var(--accent); }
+
+/* Action bar */
+.actions {
+    max-width: 1100px;
+    margin: 20px auto 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+button {
+    padding: 9px 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+button:hover { opacity: 0.85; }
+button:active { opacity: 0.7; }
+
+.btn-primary   { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-download  { background: #2e7d52; color: #fff; font-size: 0.95rem; padding: 10px 24px; }
+
+/* Presets */
+.presets {
+    max-width: 1100px;
+    margin: 16px auto 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.presets span { font-size: 0.78rem; color: var(--text2); margin-right: 4px; }
+
+/* Import/Export */
+.import-export {
+    max-width: 1100px;
+    margin: 16px auto 0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.import-export textarea {
+    flex: 1;
+    min-width: 220px;
+    height: 72px;
+    background: var(--surface);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    resize: vertical;
+}
+
+/* Toast */
+#toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+}
+#toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }

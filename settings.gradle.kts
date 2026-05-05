@@ -20,4 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "RollingCoin"
-include(":app", ":core", ":coinrain")
+include(":app", ":core", ":coinrain", ":soundgen")

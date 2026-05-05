@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Impact Sound Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div style="max-width:1100px;margin:0 auto 8px;">
+    <h1>Coin Impact Sound Generator</h1>
+    <p class="subtitle">Tune the sound, click Download — then copy <code>coin_impact.wav</code> to <code>coinrain/src/main/res/raw/</code></p>
+</div>
+
+<div class="layout">
+
+    <!-- Click -->
+    <div class="card">
+        <h2>Anschlag (Klick)</h2>
+        <div class="row">
+            <label>Dauer</label>
+            <input type="range" id="clickDuration">
+            <span class="val" id="clickDuration_val"></span>
+        </div>
+        <div class="row">
+            <label>Hochpass-Cutoff</label>
+            <input type="range" id="clickHighpass">
+            <span class="val" id="clickHighpass_val"></span>
+        </div>
+        <div class="row">
+            <label>Lautstärke</label>
+            <input type="range" id="clickVolume">
+            <span class="val" id="clickVolume_val"></span>
+        </div>
+    </div>
+
+    <!-- Resonance -->
+    <div class="card">
+        <h2>Resonanz (Body)</h2>
+        <div class="row">
+            <label>Grundfrequenz</label>
+            <input type="range" id="resonanceFreq1">
+            <span class="val" id="resonanceFreq1_val"></span>
+        </div>
+        <div class="row">
+            <label>Zweite Frequenz</label>
+            <input type="range" id="resonanceFreq2">
+            <span class="val" id="resonanceFreq2_val"></span>
+        </div>
+        <div class="row">
+            <label>Mix Grund/Zweite</label>
+            <input type="range" id="resonanceMix">
+            <span class="val" id="resonanceMix_val"></span>
+        </div>
+        <div class="row">
+            <label>Lautstärke</label>
+            <input type="range" id="resonanceVolume">
+            <span class="val" id="resonanceVolume_val"></span>
+        </div>
+    </div>
+
+    <!-- Envelope -->
+    <div class="card">
+        <h2>Hüllkurve</h2>
+        <div class="row">
+            <label>Attack</label>
+            <input type="range" id="attack">
+            <span class="val" id="attack_val"></span>
+        </div>
+        <div class="row">
+            <label>Decay</label>
+            <input type="range" id="decay">
+            <span class="val" id="decay_val"></span>
+        </div>
+        <div class="row">
+            <label>Decay-Kurve exponentiell</label>
+            <input type="checkbox" id="decayExponential">
+        </div>
+    </div>
+
+    <!-- Plastic character -->
+    <div class="card">
+        <h2>Plastik-Charakter</h2>
+        <div class="row">
+            <label>Tiefpass-Cutoff</label>
+            <input type="range" id="lowpassCutoff">
+            <span class="val" id="lowpassCutoff_val"></span>
+        </div>
+        <div class="row">
+            <label>Rausch-Anteil im Decay</label>
+            <input type="range" id="noiseAmount">
+            <span class="val" id="noiseAmount_val"></span>
+        </div>
+    </div>
+
+    <!-- Output -->
+    <div class="card">
+        <h2>Output</h2>
+        <div class="row">
+            <label>Master-Volume</label>
+            <input type="range" id="masterVolume">
+            <span class="val" id="masterVolume_val"></span>
+        </div>
+        <div class="row">
+            <label>Normalisierung beim Export</label>
+            <input type="checkbox" id="normalize">
+        </div>
+        <div class="row">
+            <label>Sample-Rate</label>
+            <select id="sampleRate">
+                <option value="22050">22050 Hz</option>
+                <option value="44100" selected>44100 Hz</option>
+                <option value="48000">48000 Hz</option>
+            </select>
+        </div>
+        <div class="row">
+            <label>Bit-Tiefe</label>
+            <div class="radio-group">
+                <label><input type="radio" name="bitDepth" value="16" checked> 16 Bit</label>
+                <label><input type="radio" name="bitDepth" value="24"> 24 Bit</label>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Presets -->
+<div class="presets">
+    <span>Presets:</span>
+    <button class="btn-secondary" id="preset_plastic_small">Münze auf Plastik (klein)</button>
+    <button class="btn-secondary" id="preset_plastic_large">Münze auf Plastik (groß)</button>
+    <button class="btn-secondary" id="preset_glass">Münze auf Glas</button>
+    <button class="btn-secondary" id="btn_reset">Reset</button>
+</div>
+
+<!-- Actions -->
+<div class="actions">
+    <button class="btn-primary" id="btn_play">&#9654; Play</button>
+    <button class="btn-download" id="btn_download">⬇ Download coin_impact.wav</button>
+</div>
+
+<!-- Import / Export -->
+<div class="import-export">
+    <button class="btn-secondary" id="btn_export">Export Settings (JSON)</button>
+    <textarea id="import_field" placeholder="JSON hier einfügen…"></textarea>
+    <button class="btn-secondary" id="btn_import">Import</button>
+</div>
+
+<div id="toast"></div>
+
+<script src="synth.js"></script>
+<script src="wav-encoder.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
