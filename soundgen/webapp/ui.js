@@ -21,6 +21,20 @@ const PRESETS = {
                   resonanceFreq1: 3000, resonanceFreq2: 6000, resonanceMix: 0.5,
                   resonanceVolume: 1.0, attack: 0, decay: 200, decayExponential: true,
                   lowpassCutoff: 8000, noiseAmount: 0.03 }
+    },
+    wood: {
+        label: 'Holz',
+        params: { clickDuration: 9, clickHighpass: 700, clickVolume: 0.5,
+                  resonanceFreq1: 350, resonanceFreq2: 700, resonanceMix: 0.7,
+                  resonanceVolume: 0.85, attack: 2, decay: 55, decayExponential: true,
+                  lowpassCutoff: 1800, noiseAmount: 0.28 }
+    },
+    dull_plastic: {
+        label: 'Dumpfes Plastik',
+        params: { clickDuration: 11, clickHighpass: 500, clickVolume: 0.35,
+                  resonanceFreq1: 550, resonanceFreq2: 1100, resonanceMix: 0.6,
+                  resonanceVolume: 0.9, attack: 0, decay: 110, decayExponential: true,
+                  lowpassCutoff: 1400, noiseAmount: 0.32 }
     }
 };
 
