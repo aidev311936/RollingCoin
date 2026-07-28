@@ -136,18 +136,39 @@ class CoinRainView @JvmOverloads constructor(
 
     fun resume() = renderThread?.resumeRendering()
 
+    @Volatile private var released = false
+
     private fun stopRenderThread() {
         renderThread?.running = false
         renderThread?.resumeRendering()
-        renderThread?.join()
+        try {
+            renderThread?.join()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
         renderThread = null
     }
 
+    /**
+     * Releases all resources owned by this view. Safe to call multiple times and safe to call
+     * before [surfaceCreated] (i.e. when start was never called). Teardown order: producer
+     * threads first, then consumers, so no event hits an already-freed resource.
+     */
     fun stop() {
-        stopRenderThread()
-        player.release()
-        haptics.release()
-        renderer.release()
+        if (released) return
+        released = true
+        stopRenderThread()     // 1. stop event producer
+        player.release()       // 2. release audio consumer
+        haptics.release()      // 3. release haptics consumer
+        renderer.release()     // 4. release bitmap cache
+        onError = null         // 5. release host callback references
+        onAnimationFinished = null
+    }
+
+    /** Guarantees cleanup when the host removes the view from the layout without calling stop(). */
+    override fun onDetachedFromWindow() {
+        stop()
+        super.onDetachedFromWindow()
     }
 
     override fun surfaceCreated(h: SurfaceHolder) {

@@ -132,6 +132,33 @@ JVM's AWT. Replace files with real assets (same names) and rebuild — no code c
 **Adding a third renderer** (e.g. SVG): implement `CoinRenderer`, wire it in `CoinRainView` under a new
 `rendering.renderer` value. No interface changes required.
 
+## Lifecycle & Ressourcen (`CoinRainView`)
+
+`CoinRainView` owns three resources that must be released explicitly:
+
+| Resource | Allocated in | Released in |
+|---|---|---|
+| `SoundPool` (via `CoinImpactPlayer`) | `surfaceCreated` → `player.load()` | `stop()` → `player.release()` |
+| Bitmap cache (via `PngCoinRenderer`) | `surfaceChanged` → `onSizeChanged()` | `stop()` → `renderer.release()` |
+| `RenderThread` | `surfaceCreated` | `surfaceDestroyed` / `stop()` |
+| Host callbacks (`onError`, `onAnimationFinished`) | Set by host | Nulled in `stop()` |
+
+**Teardown order matters:** the render thread (event producer) is stopped first, then audio and
+bitmap consumers are released. This guarantees no collision or sound event hits an already-freed
+`SoundPool` or `Bitmap`.
+
+**`stop()` is idempotent.** Guarded by `@Volatile released` flag; safe to call multiple times and
+safe to call before `surfaceCreated` (i.e. when the surface was never created). Individual
+`release()` methods on `CoinImpactPlayer` and `CoinRenderer` carry the same guard.
+
+**`onDetachedFromWindow()` auto-triggers `stop()`** so hosts that remove the view from the layout
+without an explicit `stop()` call (the common `rain()` pattern) do not leak SoundPool instances or
+bitmap memory. No host code change required to benefit from this.
+
+**The `rain()` lifecycle pattern** (the primary intended use) creates a new `CoinRainView` for each
+promo, attaches it, lets it run, then removes it. The view is never explicitly `stop()`ped — the
+`onDetachedFromWindow()` hook handles cleanup automatically.
+
 ## Sound Design Tool (`:soundgen`)
 
 A plain HTML/JS web app — no build pipeline, no dependencies. Opens directly in

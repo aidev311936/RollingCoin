@@ -30,7 +30,11 @@ class CoinImpactPlayer(private val context: Context) {
         soundPool.play(soundId, vol, vol, 1, 0, 1f)
     }
 
+    @Volatile private var released = false
+
     fun release() {
+        if (released) return
+        released = true
         soundPool.release()
     }
 }
