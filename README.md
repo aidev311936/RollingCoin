@@ -80,14 +80,22 @@ Key settings in `config/coinrain.json`:
 
 ## Coin PNG Assets
 
-Coin images live in `coinrain/src/main/res/drawable-nodpi/` (names: `coin_cent_1.png` … `coin_euro_2.png`).
-The directory ships with procedurally generated placeholder PNGs. To replace them with real artwork:
+Coin images live in `coinrain/src/main/res/drawable-nodpi/`. The required filenames are:
 
-1. Prepare 8 square PNGs (recommended ≥ 512 × 512 px, transparent background, circular coin face).
-2. Name them exactly: `coin_cent_1.png`, `coin_cent_2.png`, `coin_cent_5.png`, `coin_cent_10.png`,
-   `coin_cent_20.png`, `coin_cent_50.png`, `coin_euro_1.png`, `coin_euro_2.png`.
-3. Drop them into `coinrain/src/main/res/drawable-nodpi/` (replace the placeholders).
-4. Rebuild — no code change needed.
+| File | Denomination |
+|---|---|
+| `coin_1c.png` | 1 Cent |
+| `coin_2c.png` | 2 Cent |
+| `coin_5c.png` | 5 Cent |
+| `coin_10c.png` | 10 Cent |
+| `coin_20c.png` | 20 Cent |
+| `coin_50c.png` | 50 Cent |
+| `coin_1e.png` | 1 Euro |
+| `coin_2e.png` | 2 Euro |
+
+To replace the shipped assets with different artwork: prepare 8 square PNGs (recommended ≥ 512 × 512 px,
+transparent background, circular coin face), name them as above, drop into `drawable-nodpi/`, and rebuild.
+No code change needed.
 
 **Why `drawable-nodpi`?** Android must NOT auto-scale these bitmaps — the app calculates the exact
 physical size (mm → px via screen DPI) and scales them itself. `nodpi` disables system scaling.
@@ -110,8 +118,12 @@ startup (tag `CoinRainHaptics`) to help maintain these lists.
 
 ### Coin Images
 
-All 8 Euro coin images are from the "Simple Worksheet Design" series on Wikimedia Commons.
+The 8 Euro coin value-side PNGs (`coin_1c.png` … `coin_2e.png`) are sourced from Wikimedia Commons
+and released under the **Creative Commons CC0 1.0 Universal (Public Domain Dedication)** license —
+no attribution required, but credited here for reference.
 
-| Image | Author | Source | License |
-|---|---|---|---|
-| 1 ct – 2 € | Various | [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Euro_coins) | CC0 1.0 |
+| File | Source | License |
+|---|---|---|
+| `coin_1c.png` – `coin_2e.png` | [Wikimedia Commons — Euro coins](https://commons.wikimedia.org/wiki/Category:Euro_coins) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+
+Retrieved: 2026-07-28.

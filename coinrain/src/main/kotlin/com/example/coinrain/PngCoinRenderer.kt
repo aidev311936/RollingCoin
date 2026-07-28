@@ -12,7 +12,7 @@ import com.example.coinrain.core.CoinState
 /**
  * Renders coins from drawable-nodpi PNG assets.
  *
- * Assets are loaded from res/drawable-nodpi/ (coin_cent_1.png … coin_euro_2.png).
+ * Assets are loaded from res/drawable-nodpi/ using the mapping in [SPEC_TO_DRAWABLE].
  * Each source PNG is loaded once and scaled to the physical target size at
  * [onSizeChanged]; within a run the scaled bitmaps are cached per specId+radiusPx.
  * Bilinear filtering (Paint.isFilterBitmap) ensures clean downscaling.
@@ -20,12 +20,21 @@ import com.example.coinrain.core.CoinState
  * Fallback: if a PNG cannot be loaded (missing asset, OOM, corrupt file), the coin
  * is delegated to [ProceduralCoinRenderer] — the host app never crashes due to a
  * missing asset.
- *
- * To replace placeholder PNGs with real assets: drop replacement files into
- * drawable-nodpi/ using the same names (coin_cent_1.png … coin_euro_2.png),
- * rebuild.
  */
 class PngCoinRenderer(context: Context) : CoinRenderer {
+
+    companion object {
+        private val SPEC_TO_DRAWABLE = mapOf(
+            "CENT_1"  to "coin_1c",
+            "CENT_2"  to "coin_2c",
+            "CENT_5"  to "coin_5c",
+            "CENT_10" to "coin_10c",
+            "CENT_20" to "coin_20c",
+            "CENT_50" to "coin_50c",
+            "EURO_1"  to "coin_1e",
+            "EURO_2"  to "coin_2e",
+        )
+    }
 
     private val res = context.resources
     private val pkg = context.packageName
@@ -67,7 +76,7 @@ class PngCoinRenderer(context: Context) : CoinRenderer {
     }
 
     private fun loadAndScale(specId: String, radiusPx: Float): Bitmap? {
-        val resName = "coin_${specId.lowercase()}"
+        val resName = SPEC_TO_DRAWABLE[specId] ?: return null
         val resId = res.getIdentifier(resName, "drawable", pkg)
         if (resId == 0) return null
         return try {
