@@ -22,6 +22,12 @@
     "starCount": 12,
     "starRadiusRatio": 0.72
   },
+  "haptics": {
+    "mode": "auto",
+    "scaleWithImpact": true,
+    "modelBlocklist": ["IV2201"],
+    "modelAllowlist": ["SM-G960", "SM-G965"]
+  },
   "defaultCoins": ["CENT_1", "CENT_1", "CENT_20", "EURO_1"],
   "coins": [
     {

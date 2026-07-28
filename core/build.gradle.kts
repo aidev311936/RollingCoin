@@ -35,6 +35,8 @@ val generateConfig by tasks.registering {
         @Suppress("UNCHECKED_CAST")
         val rendering = json["rendering"] as Map<String, Any>
         @Suppress("UNCHECKED_CAST")
+        val haptics = json["haptics"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
         val coins   = json["coins"]   as List<Map<String, Any>>
         @Suppress("UNCHECKED_CAST")
         val defaultCoins = json["defaultCoins"] as List<String>
@@ -98,6 +100,16 @@ val generateConfig by tasks.registering {
             appendLine("        const val RIM_RIDGE_COUNT: Int = ${rendering.i("rimRidgeCount")}")
             appendLine("        const val STAR_COUNT: Int = ${rendering.i("starCount")}")
             appendLine("        const val STAR_RADIUS_RATIO: Float = ${rendering.f("starRadiusRatio")}")
+            appendLine("    }")
+            val blockList = ((haptics["modelBlocklist"] as? List<*>) ?: emptyList<Any>())
+                .filterIsInstance<String>().joinToString(", ") { "\"$it\"" }
+            val allowList = ((haptics["modelAllowlist"] as? List<*>) ?: emptyList<Any>())
+                .filterIsInstance<String>().joinToString(", ") { "\"$it\"" }
+            appendLine("    object Haptics {")
+            appendLine("        const val MODE: String = \"${haptics.s("mode", "auto")}\"")
+            appendLine("        const val SCALE_WITH_IMPACT: Boolean = ${haptics.b("scaleWithImpact", true)}")
+            appendLine("        val MODEL_BLOCKLIST: List<String> = listOf($blockList)")
+            appendLine("        val MODEL_ALLOWLIST: List<String> = listOf($allowList)")
             appendLine("    }")
             appendLine("    val COINS: List<CoinSpec> = listOf(")
             appendLine("        $coinLines")

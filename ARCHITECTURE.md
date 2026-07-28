@@ -58,6 +58,29 @@ because runtime tuning was disproportionately complex relative to the value it
 added for a marketing-gag app. A WAV file tuned once with `:soundgen` is simpler,
 lighter, and easier to iterate on.
 
+## Haptics (`:coinrain/CoinHapticsPlayer.kt`)
+
+Short vibration ticks (15 ms) are triggered in sync with sound events — same velocity
+threshold, same event loop. The vibration motor quality varies widely across devices,
+so the player makes a gated decision at startup:
+
+| Priority | Condition | Result |
+|---|---|---|
+| 1 | `haptics.mode = "off"` in config | always off |
+| 2 | `haptics.mode = "on"` in config | always on (if hardware present) |
+| 3 | `Build.MODEL` or `Build.DEVICE` matches `modelBlocklist` entry | off |
+| 4 | matches `modelAllowlist` entry | on |
+| 5 | `Vibrator.hasAmplitudeControl() = true` | on (auto heuristic) |
+| 6 | `hasAmplitudeControl() = false` | off (auto heuristic) |
+
+The `hasAmplitudeControl()` heuristic is **not** a documented motor-quality API; it is
+the best proxy available without OEM-specific APIs. Fine LRA motors (Galaxy S-series)
+tend to return `true`; coarse ERM motors (budget devices) tend to return `false`.
+
+At startup, `CoinHapticsPlayer` logs (tag `CoinRainHaptics`) the exact `Build.MANUFACTURER`,
+`Build.MODEL`, `Build.DEVICE` strings and the decision reason. Use this output to maintain
+the block/allowlist without guessing.
+
 ## Sound Design Tool (`:soundgen`)
 
 A plain HTML/JS web app — no build pipeline, no dependencies. Opens directly in

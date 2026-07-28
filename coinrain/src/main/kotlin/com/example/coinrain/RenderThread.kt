@@ -12,6 +12,7 @@ class RenderThread(
     private val world: World,
     private val renderer: CoinRenderer,
     private val player: CoinImpactPlayer,
+    private val haptics: CoinHapticsPlayer,
     private val specs: Map<String, CoinSpec>
 ) : Thread("CoinRainRenderThread") {
 
@@ -37,6 +38,7 @@ class RenderThread(
             val events = world.step(delta)
             for (event in events) {
                 player.play(event.velocityPxPerSec)
+                haptics.play(event.velocityPxPerSec)
             }
 
             val canvas: Canvas? = holder.lockCanvas()

@@ -17,6 +17,7 @@ class CoinRainView @JvmOverloads constructor(
     val world = World(widthPx = 1f, heightPx = 1f)
     private val renderer = ProceduralCoinRenderer()
     private val player = CoinImpactPlayer(context)
+    private val haptics = CoinHapticsPlayer(context)
     private var renderThread: RenderThread? = null
 
     init {
@@ -75,12 +76,13 @@ class CoinRainView @JvmOverloads constructor(
     fun stop() {
         stopRenderThread()
         player.release()
+        haptics.release()
         renderer.release()
     }
 
     override fun surfaceCreated(h: SurfaceHolder) {
         player.load()
-        val rt = RenderThread(h, world, renderer, player, specMap)
+        val rt = RenderThread(h, world, renderer, player, haptics, specMap)
         renderThread = rt
         rt.start()
     }

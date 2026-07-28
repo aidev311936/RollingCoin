@@ -35,6 +35,15 @@ Key settings in `config/coinrain.json`:
 | `sound.minImpactVelocityForSound` | `80.0` | Min impact speed (px/s) to trigger a sound |
 | `physics.restitution` | `0.45` | Wall/floor bounce coefficient |
 | `physics.sleepVelocityThreshold` | `100.0` | Speed below which sleep counter increments |
+| `haptics.mode` | `"auto"` | `"auto"` / `"on"` / `"off"` — see below |
+| `haptics.scaleWithImpact` | `true` | Scale amplitude with velocity (requires amplitude control) |
+| `haptics.modelBlocklist` | `["IV2201"]` | `Build.MODEL`/`DEVICE` substrings that force haptics off |
+| `haptics.modelAllowlist` | `["SM-G960","SM-G965"]` | Substrings that force haptics on |
+
+**Haptics mode `"auto"`:** uses `Vibrator.hasAmplitudeControl()` as a motor-quality heuristic —
+`true` → fine LRA motor assumed → haptics on; `false` → coarse ERM → off. Override for specific
+devices via block/allowlist. The exact `Build.MODEL` and `Build.DEVICE` strings are logged at
+startup (tag `CoinRainHaptics`) to help maintain these lists.
 
 ## Module Structure
 
