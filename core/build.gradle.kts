@@ -49,7 +49,10 @@ val generateConfig by tasks.registering {
         @Suppress("UNCHECKED_CAST")
         val coins   = json["coins"]   as List<Map<String, Any>>
         @Suppress("UNCHECKED_CAST")
-        val defaultCoins = json["defaultCoins"] as List<String>
+        val fallbackStartCoins = json["fallbackStartCoins"] as List<String>
+        @Suppress("UNCHECKED_CAST")
+        val fallbackAllowedCoins = (json["fallbackAllowedCoins"] as? List<*>)
+            ?.filterIsInstance<String>() ?: emptyList<String>()
 
         fun Number.f() = "${toDouble()}f"
         fun Map<String, Any>.f(key: String) = (get(key) as Number).f()
@@ -125,8 +128,12 @@ val generateConfig by tasks.registering {
             appendLine("    val COINS: List<CoinSpec> = listOf(")
             appendLine("        $coinLines")
             appendLine("    )")
-            val defaultList = defaultCoins.joinToString(", ") { "\"$it\"" }
-            appendLine("    val DEFAULT_COINS: List<String> = listOf($defaultList)")
+            val startList   = fallbackStartCoins.joinToString(", ") { "\"$it\"" }
+            val allowedList = fallbackAllowedCoins.joinToString(", ") { "\"$it\"" }
+            // FALLBACK_START_COINS: used by spawnDefaultCoins() / XML-only hosts with no rain() call.
+            appendLine("    val FALLBACK_START_COINS: List<String> = listOf($startList)")
+            // FALLBACK_ALLOWED_COINS: denominations for rain(allowedCoins=null). Empty = all.
+            appendLine("    val FALLBACK_ALLOWED_COINS: List<String> = listOf($allowedList)")
             appendLine("}")
             appendLine()
             appendLine("data class CoinSpec(")

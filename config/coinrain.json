@@ -29,7 +29,8 @@
     "modelBlocklist": ["IV2201"],
     "modelAllowlist": ["SM-G960", "SM-G965"]
   },
-  "defaultCoins": ["CENT_1", "CENT_1", "CENT_20", "EURO_1"],
+  "fallbackStartCoins": ["CENT_1", "CENT_1", "CENT_20", "EURO_1"],
+  "fallbackAllowedCoins": [],
   "coins": [
     {
       "id": "CENT_1",

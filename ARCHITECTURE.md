@@ -81,6 +81,35 @@ At startup, `CoinHapticsPlayer` logs (tag `CoinRainHaptics`) the exact `Build.MA
 `Build.MODEL`, `Build.DEVICE` strings and the decision reason. Use this output to maintain
 the block/allowlist without guessing.
 
+## Runtime Amount API (`CoinRainView.rain()`)
+
+The host app controls which amount to rain and which denominations to allow at **runtime**,
+not at build time. This allows different users to receive different amounts without a rebuild.
+
+```kotlin
+coinRainView.rain(amountCents: Int, allowedCoins: Set<Denomination>? = null)
+coinRainView.rain(amount: String,   allowedCoins: Set<Denomination>? = null)  // "2.43" → 243 cents
+```
+
+**Coin decomposition** (`:core/CoinChange.kt`): standard DP coin-change minimisation over
+the allowed denominations. If the amount is not exactly representable (e.g. {50c,20c} cannot
+make 243c since 243 is not divisible by 10), the largest representable amount is covered by
+DP and the remainder is filled with CENT_1 coins. This guarantees every non-negative integer
+cent amount is representable — no "not representable" error class exists.
+
+**1c fallback guarantee:** CENT_1 is implicitly always available as a gap-filler, even when
+the host does not include it in `allowedCoins`. The host's denomination choice governs the
+bulk of the coins; 1c only appears for the unavoidable arithmetic remainder.
+
+**Error handling at the module boundary** — `CoinRainView` never throws to the host:
+- Invalid `amountCents` (< 0 or > MAX): logs ERROR, calls `onError(PromoAmountInvalid)`,
+  falls back to `spawnDefaultCoins()`.
+- Unparseable amount string: same path via `PromoAmountParseException` from `AmountParser`.
+- Host wires `coinRainView.onError = { error -> … }` to observe errors without crashing.
+
+**`fallbackStartCoins` / `fallbackAllowedCoins`** in `coinrain.json` are used when the host
+calls `spawnDefaultCoins()` (XML-only use, no `rain()` call) or passes `allowedCoins = null`.
+
 ## Coin Renderer (`:coinrain/CoinRenderer.kt`)
 
 `CoinRenderer` is a three-method interface (`onSizeChanged`, `draw`, `release`). Two implementations:

@@ -22,7 +22,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core"))
+    api(project(":core"))  // Denomination and core types are part of the public coinrain API
     implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
