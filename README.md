@@ -39,6 +39,21 @@ Key settings in `config/coinrain.json`:
 | `haptics.scaleWithImpact` | `true` | Scale amplitude with velocity (requires amplitude control) |
 | `haptics.modelBlocklist` | `["IV2201"]` | `Build.MODEL`/`DEVICE` substrings that force haptics off |
 | `haptics.modelAllowlist` | `["SM-G960","SM-G965"]` | Substrings that force haptics on |
+| `rendering.renderer` | `"png"` | `"png"` uses PNG assets; `"procedural"` uses the built-in vector renderer |
+
+## Coin PNG Assets
+
+Coin images live in `coinrain/src/main/res/drawable-nodpi/` (names: `coin_cent_1.png` … `coin_euro_2.png`).
+The directory ships with procedurally generated placeholder PNGs. To replace them with real artwork:
+
+1. Prepare 8 square PNGs (recommended ≥ 512 × 512 px, transparent background, circular coin face).
+2. Name them exactly: `coin_cent_1.png`, `coin_cent_2.png`, `coin_cent_5.png`, `coin_cent_10.png`,
+   `coin_cent_20.png`, `coin_cent_50.png`, `coin_euro_1.png`, `coin_euro_2.png`.
+3. Drop them into `coinrain/src/main/res/drawable-nodpi/` (replace the placeholders).
+4. Rebuild — no code change needed.
+
+**Why `drawable-nodpi`?** Android must NOT auto-scale these bitmaps — the app calculates the exact
+physical size (mm → px via screen DPI) and scales them itself. `nodpi` disables system scaling.
 
 **Haptics mode `"auto"`:** uses `Vibrator.hasAmplitudeControl()` as a motor-quality heuristic —
 `true` → fine LRA motor assumed → haptics on; `false` → coarse ERM → off. Override for specific

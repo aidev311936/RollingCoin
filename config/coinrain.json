@@ -18,6 +18,7 @@
     "minImpactVelocityForSound": 80.0
   },
   "rendering": {
+    "renderer": "png",
     "rimRidgeCount": 24,
     "starCount": 12,
     "starRadiusRatio": 0.72

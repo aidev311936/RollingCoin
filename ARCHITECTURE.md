@@ -81,6 +81,28 @@ At startup, `CoinHapticsPlayer` logs (tag `CoinRainHaptics`) the exact `Build.MA
 `Build.MODEL`, `Build.DEVICE` strings and the decision reason. Use this output to maintain
 the block/allowlist without guessing.
 
+## Coin Renderer (`:coinrain/CoinRenderer.kt`)
+
+`CoinRenderer` is a three-method interface (`onSizeChanged`, `draw`, `release`). Two implementations:
+
+| Class | When used | Notes |
+|---|---|---|
+| `PngCoinRenderer` | `rendering.renderer = "png"` (default) | Loads drawable-nodpi PNGs, scales to physical size, bilinear filtered, falls back per-coin to procedural if asset missing |
+| `ProceduralCoinRenderer` | `rendering.renderer = "procedural"` | Draws coins with AWT-style Canvas ops, no external assets needed |
+
+**Physical sizing:** coin radius in pixels = `diameterMm / 2 × (xdpi / 25.4)`. Uses `DisplayMetrics.xdpi`
+(physical DPI), never `densityDpi` (rounded bucket). This ensures every coin has the correct real-world
+size in millimetres on every device. Locked by `CoinSizingTest`.
+
+**PNG asset location:** `coinrain/src/main/res/drawable-nodpi/` — `nodpi` prevents Android from
+auto-scaling; the renderer scales bitmaps to the exact physical target size itself.
+
+**Placeholder generation:** `./gradlew :core:generateCoinAssets` renders placeholder PNGs using the host
+JVM's AWT. Replace files with real assets (same names) and rebuild — no code change needed.
+
+**Adding a third renderer** (e.g. SVG): implement `CoinRenderer`, wire it in `CoinRainView` under a new
+`rendering.renderer` value. No interface changes required.
+
 ## Sound Design Tool (`:soundgen`)
 
 A plain HTML/JS web app — no build pipeline, no dependencies. Opens directly in

@@ -15,9 +15,12 @@ class CoinRainView @JvmOverloads constructor(
 
     private val specMap: Map<String, CoinSpec> = CoinRainConfig.COINS.associateBy { it.id }
     val world = World(widthPx = 1f, heightPx = 1f)
-    private val renderer = ProceduralCoinRenderer()
+    private val renderer: CoinRenderer = when (CoinRainConfig.Rendering.RENDERER) {
+        "png" -> PngCoinRenderer(context)
+        else  -> ProceduralCoinRenderer()
+    }
     private val player = CoinImpactPlayer(context)
-    private val haptics = CoinHapticsPlayer(context)
+    private val haptics = CoinHapticsPlayer(context, this)
     private var renderThread: RenderThread? = null
 
     init {
