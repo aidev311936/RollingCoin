@@ -161,9 +161,10 @@ class World(
         val relVelNormal = relVel.dot(normal)
         val impactSpeed = abs(relVelNormal)
 
-        // Zero relative normal velocity (e=0 contact constraint).
-        // Without this, a coin resting on another accumulates gravity velocity unchecked
-        // because position correction adjusts position but not velocity.
+        // Velocity handling: zero each coin's approaching normal component independently.
+        // Strictly dissipative — removes kinetic energy, never transfers it between coins.
+        // Mass-weighted and 50/50 impulse transfer both produce a stable limit cycle
+        // (~200 px/s) when coins are pressed into a corner; this dissipative clamp does not.
         if (relVelNormal < 0f) {
             when {
                 a.sleeping && !b.sleeping ->
@@ -171,9 +172,10 @@ class World(
                 b.sleeping && !a.sleeping ->
                     a.vel = a.vel + normal * relVelNormal
                 !a.sleeping && !b.sleeping -> {
-                    val j = -relVelNormal / (1f / a.massG + 1f / b.massG)
-                    a.vel = a.vel - normal * (j / a.massG)
-                    b.vel = b.vel + normal * (j / b.massG)
+                    val aVelN = a.vel.dot(normal)
+                    val bVelN = b.vel.dot(normal)
+                    if (aVelN > 0f) a.vel = a.vel - normal * aVelN
+                    if (bVelN < 0f) b.vel = b.vel - normal * bVelN
                 }
             }
         }

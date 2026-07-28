@@ -44,10 +44,14 @@ Der Vorgänger ist an Kollisionsproblemen gescheitert. Die folgenden Entscheidun
 wurden getroffen, um diese Probleme zu vermeiden, und dürfen nicht "verbessert"
 werden, ohne explizite Abstimmung:
 
-1. **Keine Impulsübertragung zwischen Münzen.** Münze ↔ Münze macht NUR
-   Positionskorrektur (Penetration auflösen), KEINE Geschwindigkeitsänderung.
-   Wenn du denkst „eigentlich müsste ich hier Impulse übertragen, sonst wirkt es
-   unrealistisch" — nein. Genau das war die Sackgasse.
+1. **Kein Impuls-Transfer zwischen Münzen — dissipativer per-Münze-Clamp.**
+   Münze ↔ Münze macht Positionskorrektur (Penetration auflösen) plus einen
+   streng dissipativen Schritt: jede Münze kappt lokal ihre eigene Annäherungs-
+   geschwindigkeit entlang der Kontaktnormalen. Kein Momentum fließt von Münze A
+   zu Münze B. Wenn du denkst „eigentlich müsste ich hier Impulse übertragen" —
+   nein. Massegewichtete UND 50/50-Impulsübertragung erzeugen beide einen stabilen
+   ~200 px/s-Grenzzyklus wenn Münzen in eine Ecke gepresst werden. Messreihe und
+   Begründung: `ARCHITECTURE.md` Punkt 1 und `docs/PLAN.md`.
 
 2. **Restitution-Slop.** Unterhalb einer Geschwindigkeitsschwelle (z. B. 50 px/s)
    wird Restitution auf 0 geclampt. Sonst hüpfen Münzen am Boden ewig im

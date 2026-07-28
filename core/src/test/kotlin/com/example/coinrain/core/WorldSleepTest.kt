@@ -100,4 +100,25 @@ class WorldSleepTest {
         world.applyShakeImpulse(Vec2(5000f, -3000f))
         assertFalse("Coins should be awake after shake", world.coins.all { it.sleeping })
     }
+
+    // Regression guard: corner scenario must settle.
+    // Previously, any form of impulse transfer (mass-weighted or 50/50) between coins
+    // created a stable ~200 px/s limit cycle in corner configurations that never decayed.
+    // The per-coin dissipative clamp (V2) fixed this; this test catches any reversion.
+    @Test
+    fun `20 coins corner gravity 45deg all sleeping after 5 seconds`() {
+        val world = World(widthPx = 800f, heightPx = 1200f).also {
+            it.gravity = Vec2(3535f, 3535f)  // 45° tilt, equivalent magnitude to makeWorld()
+        }
+        spawnCoins(world, 20)
+
+        val steps = (5.0 / (1.0 / CoinRainConfig.Physics.SIM_HZ)).toInt()
+        repeat(steps) { world.step(1f / CoinRainConfig.Physics.SIM_HZ) }
+
+        val awake = world.coins.filter { !it.sleeping }
+        assertTrue(
+            "After 5 s in corner gravity, ${awake.size} coin(s) still awake: ${awake.map { it.id }}",
+            awake.isEmpty()
+        )
+    }
 }

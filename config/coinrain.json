@@ -9,8 +9,8 @@
     "sleepAccelThreshold": 99999.0,
     "sleepFrames": 30,
     "wakeShakeThreshold": 3000.0,
-    "positionCorrectionSlop": 0.15,
-    "positionSolverIterations": 6
+    "positionCorrectionSlop": 0.0,
+    "positionSolverIterations": 3
   },
   "sound": {
     "enabled": true,

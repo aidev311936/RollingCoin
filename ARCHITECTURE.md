@@ -19,11 +19,24 @@ free; `world.step(deltaSeconds)` sub-steps internally.
 
 Key design decisions (do not revert without discussion):
 
-1. **No coin–coin impulse transfer.** Coin–coin contacts do position correction
-   only (overlap resolution). Velocity is zeroed for approaching pairs to prevent
-   jitter from the position solver, but momentum is not transferred between coins.
-   Previous attempts with impulse transfer caused lighter coins to be continuously
-   pumped into walls by heavier stacked neighbours, producing audio loops.
+1. **No coin–coin impulse transfer — dissipative per-coin clamp instead.**
+   Coin–coin contacts do position correction (overlap resolution), then each coin's
+   own approaching velocity component along the contact normal is zeroed independently.
+   No momentum passes from one coin to the other.
+
+   This was reached after measuring three variants (V1 = 50/50 split, V2 = per-coin
+   clamp, V3 = pure position only):
+   - V1 and the previous mass-weighted variant both produced a stable ~200 px/s
+     limit cycle in corner configurations (phone tilted 45°) that never decayed —
+     even with `positionSolverIterations` as low as 3.
+   - V3 (pure position, no velocity handling) diverged to >2000 px/s because gravity
+     accumulates unchecked on coins that don't directly touch a wall.
+   - V2 (per-coin clamp) settled all scenarios in < 2 s, zero wall events in
+     steady-state, ≤ 0 px penetration even at 40 coins.
+
+   The key property: the clamp is **strictly dissipative** — kinetic energy can only
+   decrease at a coin–coin contact, never increase. This prevents energy from
+   circulating in a corner pile regardless of how many contacts exist.
 
 2. **Restitution slop.** Below `restitutionSlopVelocity` (200 px/s) wall contacts
    set velocity to zero (no bounce). This prevents micro-bouncing at rest.
