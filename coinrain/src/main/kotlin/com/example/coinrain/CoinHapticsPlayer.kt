@@ -1,10 +1,15 @@
 package com.example.coinrain
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.os.Build
+import android.os.SystemClock
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import android.view.HapticFeedbackConstants
+import android.view.View
 import com.example.coinrain.core.CoinRainConfig
 
 /**
@@ -25,12 +30,20 @@ import com.example.coinrain.core.CoinRainConfig
  *
  * Startup log (tag "CoinRainHaptics") prints the exact Build strings so that unknown
  * devices can be added to the lists without guessing.
+ *
+ * Samsung-specific note: Samsung One UI's VibratorService routes all VibrationEffect
+ * calls to TYPE_EXTRA stream with mag=0, silencing them regardless of AudioAttributes
+ * usage. The workaround is View.performHapticFeedback(), which bypasses VibratorService
+ * routing entirely and goes through Android's View haptic framework path.
  */
-class CoinHapticsPlayer(context: Context) {
+class CoinHapticsPlayer(context: Context, private val view: View) {
 
     private val vibrator: Vibrator?
     private val enabled: Boolean
     private val amplitudeControl: Boolean
+    private val isSamsung: Boolean
+
+    @Volatile private var lastVibrationMs = 0L
 
     init {
         @Suppress("DEPRECATION")
@@ -46,6 +59,7 @@ class CoinHapticsPlayer(context: Context) {
         val model = Build.MODEL
         val device = Build.DEVICE
         val manufacturer = Build.MANUFACTURER
+        isSamsung = manufacturer.contains("samsung", ignoreCase = true)
         val blocklist = CoinRainConfig.Haptics.MODEL_BLOCKLIST
         val allowlist = CoinRainConfig.Haptics.MODEL_ALLOWLIST
 
@@ -83,23 +97,56 @@ class CoinHapticsPlayer(context: Context) {
     /**
      * Trigger a short haptic tick for an impact event.
      * Uses the same velocity threshold as the sound system for consistency.
-     * Called from the render thread — Vibrator is thread-safe.
+     * Called from the render thread — Vibrator and View.post are thread-safe.
      */
     fun play(velocityPxPerSec: Float) {
         if (!enabled) return
         if (velocityPxPerSec < CoinRainConfig.Sound.MIN_IMPACT_VELOCITY_FOR_SOUND) return
+
+        val now = SystemClock.uptimeMillis()
+        if (now - lastVibrationMs < COOLDOWN_MS) return
+        lastVibrationMs = now
+
+        if (isSamsung) {
+            // Samsung One UI routes all VibrationEffect calls to TYPE_EXTRA stream with
+            // mag=0, silencing them regardless of AudioAttributes. performHapticFeedback
+            // bypasses VibratorService routing entirely via Android's View haptic path.
+            view.post {
+                view.performHapticFeedback(
+                    HapticFeedbackConstants.LONG_PRESS,
+                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                )
+            }
+            return
+        }
+
         val vib = vibrator ?: return
         try {
             if (Build.VERSION.SDK_INT >= 26) {
                 val amplitude = if (CoinRainConfig.Haptics.SCALE_WITH_IMPACT && amplitudeControl) {
-                    ((velocityPxPerSec / 2000f) * 255f).toInt().coerceIn(1, 255)
+                    // Scale from threshold to 1500 px/s → amplitude 80–255.
+                    // Floor at 80 ensures the vibration is perceptible on LRA motors.
+                    val minV = CoinRainConfig.Sound.MIN_IMPACT_VELOCITY_FOR_SOUND
+                    val t = ((velocityPxPerSec - minV) / (1500f - minV)).coerceIn(0f, 1f)
+                    (80 + t * 175f).toInt().coerceIn(1, 255)
                 } else {
                     VibrationEffect.DEFAULT_AMPLITUDE
                 }
-                vib.vibrate(VibrationEffect.createOneShot(15L, amplitude))
+                val effect = VibrationEffect.createOneShot(20L, amplitude)
+                if (Build.VERSION.SDK_INT >= 33) {
+                    vib.vibrate(effect, VibrationAttributes.Builder()
+                        .setUsage(VibrationAttributes.USAGE_NOTIFICATION)
+                        .build())
+                } else {
+                    @Suppress("DEPRECATION")
+                    vib.vibrate(effect, AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build())
+                }
             } else {
                 @Suppress("DEPRECATION")
-                vib.vibrate(15L)
+                vib.vibrate(20L)
             }
         } catch (_: Exception) {
             // Permission missing or hardware fault — disable silently.
@@ -111,5 +158,6 @@ class CoinHapticsPlayer(context: Context) {
 
     companion object {
         private const val TAG = "CoinRainHaptics"
+        private const val COOLDOWN_MS = 110L
     }
 }
