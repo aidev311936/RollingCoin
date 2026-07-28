@@ -2,6 +2,43 @@
 
 Android coin physics simulation — tilt your phone to roll Euro coins around the screen.
 
+## Testapp: Betrag und Stückelungen ändern (ohne Rebuild)
+
+Die Testapp liest ihre Konfiguration beim Start von:
+
+```
+/sdcard/Android/data/com.example.rollingcoin/files/testapp.json
+```
+
+Beim ersten Start wird dort automatisch eine Standarddatei erstellt und der Pfad in Logcat
+geloggt (Tag `CoinRainTestApp`).
+
+**Datei per ADB übertragen:**
+```bash
+adb push testapp.json /sdcard/Android/data/com.example.rollingcoin/files/testapp.json
+```
+
+Dann App neu starten — kein Rebuild nötig.
+
+**Format:**
+```json
+{
+  "amount": "2.43",
+  "allowedCoins": ["EURO_1", "CENT_50", "CENT_20", "CENT_10", "CENT_5", "CENT_1"]
+}
+```
+
+- `amount`: Betrag in Euro mit bis zu 2 Dezimalstellen (`"2.43"` = 243 Cent).
+- `allowedCoins`: erlaubte Stückelungen. Mögliche Werte:
+  `CENT_1`, `CENT_2`, `CENT_5`, `CENT_10`, `CENT_20`, `CENT_50`, `EURO_1`, `EURO_2`.
+  Wird das Feld weggelassen, sind alle Stückelungen erlaubt.
+
+**1-Cent-Garantie:** Jeder ganzzahlige Centbetrag ist immer darstellbar — der Algorithmus
+ergänzt automatisch 1-Cent-Münzen für den Rest, den die gewählten Stückelungen nicht exakt
+abdecken.
+
+---
+
 ## Sound Workflow
 
 Impact sounds are authored with the `:soundgen` web app and shipped as a single WAV file.
