@@ -1,0 +1,74 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Debug APK",
+            "type": "shell",
+            "command": "./gradlew :app:assembleDebug",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install on Device (ADB)",
+            "type": "shell",
+            "command": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build & Install",
+            "type": "shell",
+            "command": "./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Sound Generator",
+            "type": "shell",
+            "command": "./gradlew :soundgen:run",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": { "regexp": "^$" },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Sound Generator running at",
+                    "endsPattern": "Sound Generator running at"
+                }
+            }
+        },
+        {
+            "label": "Run Core Tests",
+            "type": "shell",
+            "command": "./gradlew :core:test",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
