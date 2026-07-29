@@ -31,17 +31,17 @@ import com.example.coinrain.core.CoinRainConfig
  * Startup log (tag "CoinRainHaptics") prints the exact Build strings so that unknown
  * devices can be added to the lists without guessing.
  *
- * Samsung-specific note: Samsung One UI's VibratorService routes all VibrationEffect
- * calls to TYPE_EXTRA stream with mag=0, silencing them regardless of AudioAttributes
- * usage. The workaround is View.performHapticFeedback(), which bypasses VibratorService
- * routing entirely and goes through Android's View haptic framework path.
+ * OEM workaround (Samsung + Xiaomi/POCO): both OEMs silence VibrationEffect calls from
+ * 3rd-party apps via VibratorService policy (Samsung: TYPE_EXTRA mag=0; Xiaomi HyperOS:
+ * audio=ignore). View.performHapticFeedback() bypasses VibratorService entirely and works
+ * on both. Confirmed via logcat on Galaxy S9 and POCO X7 Pro.
  */
 class CoinHapticsPlayer(context: Context, private val view: View) {
 
     private val vibrator: Vibrator?
     private val enabled: Boolean
     private val amplitudeControl: Boolean
-    private val isSamsung: Boolean
+    private val useViewHapticWorkaround: Boolean
 
     @Volatile private var lastVibrationMs = 0L
 
@@ -59,7 +59,11 @@ class CoinHapticsPlayer(context: Context, private val view: View) {
         val model = Build.MODEL
         val device = Build.DEVICE
         val manufacturer = Build.MANUFACTURER
-        isSamsung = manufacturer.contains("samsung", ignoreCase = true)
+        // Both Samsung and Xiaomi/POCO route VibrationEffect calls through a policy that
+        // silences 3rd-party apps (Samsung: TYPE_EXTRA mag=0; Xiaomi HyperOS: audio=ignore).
+        // View.performHapticFeedback bypasses VibratorService entirely and works on both.
+        useViewHapticWorkaround = manufacturer.contains("samsung", ignoreCase = true)
+                 || manufacturer.contains("xiaomi", ignoreCase = true)
         val blocklist = CoinRainConfig.Haptics.MODEL_BLOCKLIST
         val allowlist = CoinRainConfig.Haptics.MODEL_ALLOWLIST
 
@@ -107,7 +111,7 @@ class CoinHapticsPlayer(context: Context, private val view: View) {
         if (now - lastVibrationMs < COOLDOWN_MS) return
         lastVibrationMs = now
 
-        if (isSamsung) {
+        if (useViewHapticWorkaround) {
             // Samsung One UI routes all VibrationEffect calls to TYPE_EXTRA stream with
             // mag=0, silencing them regardless of AudioAttributes. performHapticFeedback
             // bypasses VibratorService routing entirely via Android's View haptic path.
