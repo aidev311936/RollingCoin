@@ -24,7 +24,7 @@
     "starRadiusRatio": 0.72
   },
   "haptics": {
-    "mode": "auto",
+    "mode": "on",
     "scaleWithImpact": true,
     "modelBlocklist": ["IV2201"],
     "modelAllowlist": ["SM-G960", "SM-G965", "2412DPC0AG"]
